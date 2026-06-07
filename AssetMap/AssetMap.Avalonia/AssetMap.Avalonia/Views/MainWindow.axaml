@@ -5,6 +5,7 @@
         x:Class="AssetMap.Avalonia.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="AssetMap"
+        Icon="avares://AssetMap.Avalonia/Assets/Icon.ico"
         MinWidth="900" MinHeight="600"
         Width="1200" Height="750"
         WindowStartupLocation="CenterScreen"
@@ -58,15 +59,10 @@
                         <StackPanel Orientation="Horizontal" Spacing="10"
                                     IsVisible="{Binding IsSidebarOpen}"
                                     VerticalAlignment="Center">
-                            <Border Width="32" Height="32" CornerRadius="8">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                        <GradientStop Color="#FF0078D4" Offset="0"/>
-                                        <GradientStop Color="#FF00B4D8" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                                <TextBlock Text="A" FontSize="17" FontWeight="Bold" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="40" Height="40" CornerRadius="12"
+                                    ClipToBounds="True">
+                                <Image Source="avares://AssetMap.Avalonia/Assets/Icon.png"
+                                       RenderOptions.BitmapInterpolationMode="HighQuality"/>
                             </Border>
                             <TextBlock Text="AssetMap" FontSize="15" FontWeight="Bold"
                                        Foreground="{DynamicResource BrushTextPrimary}"
@@ -74,17 +70,12 @@
                         </StackPanel>
 
                         <!-- Zavřeno: jen ikona, vycentrovaná -->
-                        <Border Width="32" Height="32" CornerRadius="8"
+                        <Border Width="40" Height="40" CornerRadius="12"
+                                ClipToBounds="True"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 IsVisible="{Binding !IsSidebarOpen}">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                    <GradientStop Color="#FF0078D4" Offset="0"/>
-                                    <GradientStop Color="#FF00B4D8" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <TextBlock Text="A" FontSize="17" FontWeight="Bold" Foreground="White"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Image Source="avares://AssetMap.Avalonia/Assets/Icon.png"
+                                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
                         </Border>
                     </Grid>
                 </Border>
