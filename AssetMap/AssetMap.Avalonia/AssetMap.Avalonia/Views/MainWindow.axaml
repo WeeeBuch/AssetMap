@@ -53,7 +53,9 @@
                         BorderBrush="{DynamicResource BrushBorder}"
                         BorderThickness="0 1 0 0"
                         Padding="8 8">
-                    <Button Classes="nav">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnSettings}"
+                            Command="{Binding NavigateToSettingsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="⚙" FontSize="14"/>
                             <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
@@ -70,7 +72,9 @@
                                Margin="12 8 0 4"
                                Opacity="0.7"/>
 
-                    <Button Classes="nav active">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnDashboard}"
+                            Command="{Binding NavigateToDashboardCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="◈" FontSize="14"/>
                             <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
@@ -83,21 +87,27 @@
                                Margin="12 12 0 4"
                                Opacity="0.7"/>
 
-                    <Button Classes="nav">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnAccounts}"
+                            Command="{Binding NavigateToAccountsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="⬡" FontSize="14"/>
                             <TextBlock Text="Účty" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <Button Classes="nav">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnTransactions}"
+                            Command="{Binding NavigateToTransactionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="↕" FontSize="14"/>
                             <TextBlock Text="Transakce" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <Button Classes="nav">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnAssets}"
+                            Command="{Binding NavigateToAssetsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="▦" FontSize="14"/>
                             <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
@@ -120,7 +130,7 @@
                     BorderThickness="0 0 0 1"
                     Padding="24 0">
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Dashboard"
+                    <TextBlock Text="{Binding PageTitle}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrushTextPrimary}"
                                VerticalAlignment="Center"/>
@@ -153,7 +163,12 @@
             <ScrollViewer Grid.Row="1"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
-                <views:MainView Margin="24"/>
+                <Panel>
+                    <views:MainView Margin="24"
+                                    IsVisible="{Binding IsOnDashboard}"/>
+                    <views:SettingsView Margin="24"
+                                        IsVisible="{Binding IsOnSettings}"/>
+                </Panel>
             </ScrollViewer>
 
         </Grid>

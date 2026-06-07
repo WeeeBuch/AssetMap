@@ -18,6 +18,16 @@ public partial class LoginViewModel : ViewModelBase
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _isBusy;
 
+    // Server URL
+    [ObservableProperty] private string _serverUrl = "http://localhost:5000";
+    [ObservableProperty] private bool _isEditingServerUrl;
+
+    [RelayCommand]
+    private void ToggleEditServerUrl() => IsEditingServerUrl = !IsEditingServerUrl;
+
+    [RelayCommand]
+    private void ConfirmServerUrl() => IsEditingServerUrl = false;
+
     public event Action? LoginSucceeded;
 
     [RelayCommand(CanExecute = nameof(CanLogin))]

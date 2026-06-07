@@ -4,7 +4,7 @@
         x:Class="AssetMap.Avalonia.Views.LoginWindow"
         x:DataType="vm:LoginViewModel"
         Title="AssetMap"
-        Width="440" Height="520"
+        Width="440" Height="560"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BrushBackground}">
@@ -110,12 +110,67 @@
                     </Panel>
                 </Button>
 
+                <!-- Server URL řádek -->
+                <Border Margin="0 20 0 0"
+                        Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12 10">
+                    <StackPanel Spacing="4">
+
+                        <TextBlock Text="SERVER"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   Opacity="0.7"/>
+
+                        <!-- Zobrazení URL -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding !IsEditingServerUrl}">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding ServerUrl}"
+                                       FontSize="12" FontFamily="Consolas,monospace"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="1"
+                                    Classes="ghost"
+                                    Command="{Binding ToggleEditServerUrlCommand}"
+                                    Padding="6 4" Margin="6 0 0 0"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="Změnit server">
+                                <TextBlock Text="✎" FontSize="12"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- Editace URL -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding IsEditingServerUrl}">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding ServerUrl}"
+                                     FontSize="12" FontFamily="Consolas,monospace"
+                                     PlaceholderText="http://localhost:5000"
+                                     Padding="8 5"/>
+                            <Button Grid.Column="1"
+                                    Classes="ghost"
+                                    Command="{Binding ConfirmServerUrlCommand}"
+                                    Padding="6 4" Margin="6 0 0 0"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="Potvrdit">
+                                <TextBlock Text="✓" FontSize="13"
+                                           Foreground="{DynamicResource BrushSuccess}"/>
+                            </Button>
+                        </Grid>
+
+                    </StackPanel>
+                </Border>
+
                 <!-- Footer -->
                 <TextBlock Text="AssetMap v0.1 · self-hosted"
                            FontSize="11"
                            Foreground="{DynamicResource BrushTextSecondary}"
                            HorizontalAlignment="Center"
-                           Margin="0 24 0 0"
+                           Margin="0 16 0 0"
                            Opacity="0.5"/>
 
             </StackPanel>
