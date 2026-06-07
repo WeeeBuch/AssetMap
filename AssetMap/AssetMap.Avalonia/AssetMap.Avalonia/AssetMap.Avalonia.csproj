@@ -20,4 +20,9 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AssetMap.Entities\AssetMap.Entities.csproj" />
+    <ProjectReference Include="..\..\AssetMap.Repos\AssetMap.Repos.csproj" />
+  </ItemGroup>
 </Project>

@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AssetMap.Comms\AssetMap.Comms.csproj" />
+    <ProjectReference Include="..\AssetMap.Database\AssetMap.Database.csproj" />
+    <ProjectReference Include="..\AssetMap.Entities\AssetMap.Entities.csproj" />
+  </ItemGroup>
+
 </Project>
