@@ -1,0 +1,51 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+
+        <ResourceDictionary x:Key="Dark">
+            <!-- Backgrounds -->
+            <SolidColorBrush x:Key="BrushBackground">#1E1E1E</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushSurface">#252526</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushSurfaceAlt">#2D2D30</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushBorder">#3F3F46</SolidColorBrush>
+            <!-- Text -->
+            <SolidColorBrush x:Key="BrushTextPrimary">#D4D4D4</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushTextSecondary">#858585</SolidColorBrush>
+            <!-- Colors (pro gradienty, animace) -->
+            <Color x:Key="ColorBackground">#1E1E1E</Color>
+            <Color x:Key="ColorSurface">#252526</Color>
+            <Color x:Key="ColorSurfaceAlt">#2D2D30</Color>
+            <Color x:Key="ColorBorder">#3F3F46</Color>
+            <Color x:Key="ColorTextPrimary">#D4D4D4</Color>
+            <Color x:Key="ColorTextSecondary">#858585</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <!-- Backgrounds -->
+            <SolidColorBrush x:Key="BrushBackground">#F3F3F3</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushSurface">#FFFFFF</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushSurfaceAlt">#EBEBEB</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushBorder">#CCCEDB</SolidColorBrush>
+            <!-- Text -->
+            <SolidColorBrush x:Key="BrushTextPrimary">#1E1E1E</SolidColorBrush>
+            <SolidColorBrush x:Key="BrushTextSecondary">#717171</SolidColorBrush>
+            <!-- Colors -->
+            <Color x:Key="ColorBackground">#F3F3F3</Color>
+            <Color x:Key="ColorSurface">#FFFFFF</Color>
+            <Color x:Key="ColorSurfaceAlt">#EBEBEB</Color>
+            <Color x:Key="ColorBorder">#CCCEDB</Color>
+            <Color x:Key="ColorTextPrimary">#1E1E1E</Color>
+            <Color x:Key="ColorTextSecondary">#717171</Color>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Sdílené — stejné v obou režimech -->
+    <SolidColorBrush x:Key="BrushSuccess">#4EC994</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushDanger">#F14C4C</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushWarning">#CCA700</SolidColorBrush>
+    <Color x:Key="ColorSuccess">#4EC994</Color>
+    <Color x:Key="ColorDanger">#F14C4C</Color>
+    <Color x:Key="ColorWarning">#CCA700</Color>
+
+</ResourceDictionary>
