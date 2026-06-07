@@ -38,19 +38,13 @@
                    VerticalAlignment="Center"
                    IsVisible="{Binding IsPositive}"/>
 
-        <!-- Částka — negativní (není pozitivní ani neutrální) -->
+        <!-- Částka — negativní -->
         <TextBlock Grid.Column="2"
                    Text="{Binding Amount}"
                    Foreground="{DynamicResource BrushDanger}"
                    FontSize="13" FontWeight="SemiBold"
-                   VerticalAlignment="Center">
-            <TextBlock.IsVisible>
-                <MultiBinding Converter="{x:Static BoolConverters.And}">
-                    <Binding Path="IsPositive" Converter="{x:Static BoolConverters.IsNotTrue}"/>
-                    <Binding Path="IsNeutral"  Converter="{x:Static BoolConverters.IsNotTrue}"/>
-                </MultiBinding>
-            </TextBlock.IsVisible>
-        </TextBlock>
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsNegative}"/>
 
         <!-- Částka — neutrální -->
         <TextBlock Grid.Column="2"

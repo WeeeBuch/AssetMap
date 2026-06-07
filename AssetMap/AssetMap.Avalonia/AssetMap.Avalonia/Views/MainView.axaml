@@ -91,7 +91,7 @@
                         <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12">Přidat</Button>
                     </Grid>
 
-                    <c:AccountRow IconText="₿" Name="BTC Peněženka 01"
+                    <c:AccountRow IconText="₿" AccountName="BTC Peněženka 01"
                                   Subtitle="bc1q…a3f2"
                                   Value="$82 000" SubValue="1,05 BTC"
                                   ShowDivider="True">
@@ -99,7 +99,7 @@
                         <c:AccountRow.IconForeground><SolidColorBrush Color="#F7931A"/></c:AccountRow.IconForeground>
                     </c:AccountRow>
 
-                    <c:AccountRow IconText="Ξ" Name="ETH Peněženka"
+                    <c:AccountRow IconText="Ξ" AccountName="ETH Peněženka"
                                   Subtitle="0x4a…9c1b"
                                   Value="$24 500" SubValue="10,2 ETH"
                                   ShowDivider="True">
@@ -107,7 +107,7 @@
                         <c:AccountRow.IconForeground><SolidColorBrush Color="#627EEA"/></c:AccountRow.IconForeground>
                     </c:AccountRow>
 
-                    <c:AccountRow IconText="🏦" Name="KB Běžný účet"
+                    <c:AccountRow IconText="🏦" AccountName="KB Běžný účet"
                                   Subtitle="Komerční banka"
                                   Value="$35 850" SubValue="CZK 826 500"
                                   ShowDivider="False">
@@ -143,7 +143,7 @@
 
                     <c:TransactionRow IconText="▼" Description="Výdaj — poplatky"
                                       Date="04. 06. 2026" Amount="-0,002 ETH"
-                                      IsPositive="False">
+                                      IsNegative="True">
                         <c:TransactionRow.IconBackground><SolidColorBrush Color="#20F14C4C"/></c:TransactionRow.IconBackground>
                         <c:TransactionRow.IconForeground><DynamicResourceExtension ResourceKey="BrushDanger"/></c:TransactionRow.IconForeground>
                     </c:TransactionRow>

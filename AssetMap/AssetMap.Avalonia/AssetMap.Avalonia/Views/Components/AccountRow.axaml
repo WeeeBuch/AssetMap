@@ -4,12 +4,9 @@
              x:Class="AssetMap.Avalonia.Views.Components.AccountRow"
              x:DataType="components:AccountRow">
 
-    <Border BorderBrush="{DynamicResource BrushBorder}"
-            BorderThickness="{Binding ShowDivider, Converter={x:Static BoolConverters.ToObject},
-                ConverterParameter='0 0 0 1|0'}"
-            Padding="0 0 0 12"
-            Margin="0 0 0 4">
-        <Grid ColumnDefinitions="Auto,*,Auto">
+    <StackPanel Margin="0 0 0 4">
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 12">
 
             <!-- Ikona -->
             <Border Grid.Column="0"
@@ -25,7 +22,7 @@
 
             <!-- Název + subtitle -->
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Name}"
+                <TextBlock Text="{Binding AccountName}"
                            FontSize="13" FontWeight="Medium"
                            Foreground="{DynamicResource BrushTextPrimary}"/>
                 <TextBlock Text="{Binding Subtitle}"
@@ -53,5 +50,11 @@
             </StackPanel>
 
         </Grid>
-    </Border>
+
+        <!-- Oddělovač — viditelný jen když ShowDivider=true -->
+        <Border Height="1"
+                Background="{DynamicResource BrushBorder}"
+                IsVisible="{Binding ShowDivider}"/>
+
+    </StackPanel>
 </UserControl>
