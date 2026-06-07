@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.Components.AccountRow"
+             x:DataType="components:AccountRow">
+
+    <Border BorderBrush="{DynamicResource BrushBorder}"
+            BorderThickness="{Binding ShowDivider, Converter={x:Static BoolConverters.ToObject},
+                ConverterParameter='0 0 0 1|0'}"
+            Padding="0 0 0 12"
+            Margin="0 0 0 4">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+
+            <!-- Ikona -->
+            <Border Grid.Column="0"
+                    Width="36" Height="36" CornerRadius="8"
+                    Background="{Binding IconBackground}"
+                    Margin="0 0 12 0">
+                <TextBlock Text="{Binding IconText}"
+                           FontSize="16"
+                           Foreground="{Binding IconForeground}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+            </Border>
+
+            <!-- Název + subtitle -->
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}"
+                           FontSize="13" FontWeight="Medium"
+                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                <TextBlock Text="{Binding Subtitle}"
+                           FontSize="11"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           IsVisible="{Binding Subtitle,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+
+            <!-- Hodnota -->
+            <StackPanel Grid.Column="2"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Right"
+                        Spacing="2">
+                <TextBlock Text="{Binding Value}"
+                           FontSize="13" FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           HorizontalAlignment="Right"/>
+                <TextBlock Text="{Binding SubValue}"
+                           FontSize="11"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           HorizontalAlignment="Right"
+                           IsVisible="{Binding SubValue,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+
+        </Grid>
+    </Border>
+</UserControl>

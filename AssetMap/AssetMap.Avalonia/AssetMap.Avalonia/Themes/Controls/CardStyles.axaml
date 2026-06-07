@@ -1,0 +1,77 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════════
+         CARD — <Border Classes="card">
+         ══════════════════════════════════════ -->
+    <Style Selector="Border.card">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurface}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="6"/>
+        <Setter Property="Padding"         Value="20"/>
+        <Setter Property="BoxShadow"       Value="0 2 8 0 #18000000"/>
+    </Style>
+
+    <!-- ══════════════════════════════════════
+         NAV BUTTON — sidebar navigation
+         <Button Classes="nav">
+         <Button Classes="nav active">
+         ══════════════════════════════════════ -->
+    <Style Selector="Button.nav">
+        <Setter Property="Background"              Value="Transparent"/>
+        <Setter Property="Foreground"              Value="{DynamicResource BrushTextSecondary}"/>
+        <Setter Property="BorderThickness"         Value="0"/>
+        <Setter Property="CornerRadius"            Value="5"/>
+        <Setter Property="Padding"                 Value="12 9"/>
+        <Setter Property="HorizontalAlignment"     Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="FontSize"                Value="13.5"/>
+        <Setter Property="RenderTransformOrigin"   Value="50%,50%"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.nav /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <Style Selector="Button.nav:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    </Style>
+
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+    </Style>
+
+    <Style Selector="Button.nav:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    </Style>
+
+    <Style Selector="Button.nav:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+    </Style>
+
+    <!-- Aktivní nav položka -->
+    <Style Selector="Button.nav.active">
+        <Setter Property="Foreground" Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+    </Style>
+
+    <Style Selector="Button.nav.active:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource BrushAccentHover}"/>
+    </Style>
+
+    <Style Selector="Button.nav.active:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+    </Style>
+
+</Styles>

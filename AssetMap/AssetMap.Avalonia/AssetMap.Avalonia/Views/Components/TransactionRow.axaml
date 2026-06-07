@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.Components.TransactionRow"
+             x:DataType="components:TransactionRow">
+
+    <Grid ColumnDefinitions="Auto,*,Auto">
+
+        <!-- Ikona -->
+        <Border Grid.Column="0"
+                Width="36" Height="36" CornerRadius="18"
+                Background="{Binding IconBackground}"
+                Margin="0 0 12 0">
+            <TextBlock Text="{Binding IconText}"
+                       FontSize="13"
+                       Foreground="{Binding IconForeground}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Popis + datum -->
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Description}"
+                       FontSize="13" FontWeight="Medium"
+                       Foreground="{DynamicResource BrushTextPrimary}"/>
+            <TextBlock Text="{Binding Date}"
+                       FontSize="11"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       IsVisible="{Binding Date,
+                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <!-- Částka — pozitivní -->
+        <TextBlock Grid.Column="2"
+                   Text="{Binding Amount}"
+                   Foreground="{DynamicResource BrushSuccess}"
+                   FontSize="13" FontWeight="SemiBold"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsPositive}"/>
+
+        <!-- Částka — negativní (není pozitivní ani neutrální) -->
+        <TextBlock Grid.Column="2"
+                   Text="{Binding Amount}"
+                   Foreground="{DynamicResource BrushDanger}"
+                   FontSize="13" FontWeight="SemiBold"
+                   VerticalAlignment="Center">
+            <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="IsPositive" Converter="{x:Static BoolConverters.IsNotTrue}"/>
+                    <Binding Path="IsNeutral"  Converter="{x:Static BoolConverters.IsNotTrue}"/>
+                </MultiBinding>
+            </TextBlock.IsVisible>
+        </TextBlock>
+
+        <!-- Částka — neutrální -->
+        <TextBlock Grid.Column="2"
+                   Text="{Binding Amount}"
+                   Foreground="{DynamicResource BrushTextSecondary}"
+                   FontSize="13" FontWeight="SemiBold"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsNeutral}"/>
+
+    </Grid>
+</UserControl>

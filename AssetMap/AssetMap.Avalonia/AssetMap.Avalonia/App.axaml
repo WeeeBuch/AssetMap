@@ -10,6 +10,8 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/ButtonStyles.axaml"/>
+        <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/CardStyles.axaml"/>
     </Application.Styles>
 
     <Application.Resources>
