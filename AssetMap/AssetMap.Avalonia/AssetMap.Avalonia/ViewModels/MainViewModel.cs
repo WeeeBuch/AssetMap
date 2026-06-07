@@ -49,13 +49,19 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsAccentPurple))]
     [NotifyPropertyChangedFor(nameof(IsAccentGreen))]
     [NotifyPropertyChangedFor(nameof(IsAccentOrange))]
+    [NotifyPropertyChangedFor(nameof(IsAccentDarkGreen))]
+    [NotifyPropertyChangedFor(nameof(IsAccentDarkBlue))]
+    [NotifyPropertyChangedFor(nameof(IsAccentRed))]
     private AccentColor _selectedAccent =
         System.Enum.TryParse<AccentColor>(SettingsService.Current.Accent, out var a) ? a : AccentColor.Blue;
 
-    public bool IsAccentBlue   => SelectedAccent == AccentColor.Blue;
-    public bool IsAccentPurple => SelectedAccent == AccentColor.Purple;
-    public bool IsAccentGreen  => SelectedAccent == AccentColor.Green;
-    public bool IsAccentOrange => SelectedAccent == AccentColor.Orange;
+    public bool IsAccentBlue      => SelectedAccent == AccentColor.Blue;
+    public bool IsAccentPurple    => SelectedAccent == AccentColor.Purple;
+    public bool IsAccentGreen     => SelectedAccent == AccentColor.Green;
+    public bool IsAccentOrange    => SelectedAccent == AccentColor.Orange;
+    public bool IsAccentDarkGreen => SelectedAccent == AccentColor.DarkGreen;
+    public bool IsAccentDarkBlue  => SelectedAccent == AccentColor.DarkBlue;
+    public bool IsAccentRed       => SelectedAccent == AccentColor.Red;
 
     partial void OnIsDarkThemeChanged(bool value)
     {
@@ -64,10 +70,13 @@ public partial class MainViewModel : ViewModelBase
         SettingsService.Save();
     }
 
-    [RelayCommand] private void SetAccentBlue()   => ApplyAccent(AccentColor.Blue);
-    [RelayCommand] private void SetAccentPurple() => ApplyAccent(AccentColor.Purple);
-    [RelayCommand] private void SetAccentGreen()  => ApplyAccent(AccentColor.Green);
-    [RelayCommand] private void SetAccentOrange() => ApplyAccent(AccentColor.Orange);
+    [RelayCommand] private void SetAccentBlue()      => ApplyAccent(AccentColor.Blue);
+    [RelayCommand] private void SetAccentPurple()    => ApplyAccent(AccentColor.Purple);
+    [RelayCommand] private void SetAccentGreen()     => ApplyAccent(AccentColor.Green);
+    [RelayCommand] private void SetAccentOrange()    => ApplyAccent(AccentColor.Orange);
+    [RelayCommand] private void SetAccentDarkGreen() => ApplyAccent(AccentColor.DarkGreen);
+    [RelayCommand] private void SetAccentDarkBlue()  => ApplyAccent(AccentColor.DarkBlue);
+    [RelayCommand] private void SetAccentRed()       => ApplyAccent(AccentColor.Red);
 
     private void ApplyAccent(AccentColor accent)
     {

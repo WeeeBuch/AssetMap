@@ -56,4 +56,42 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BrushDanger}"/>
     </Style>
 
+
+    <!-- ══════════════════════════════════
+         TOGGLESWITCH — accent barva místo FluentTheme modré
+         Track part = Border#SwitchKnobBounds
+         Generické (base) styly musí být PŘED pseudo-class override.
+         ══════════════════════════════════ -->
+
+    <!-- Unchecked — tmavší track (FluentTheme default je příliš světlý) -->
+    <Style Selector="ToggleSwitch /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurfaceAlt}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- Unchecked + hover -->
+    <Style Selector="ToggleSwitch:pointerover /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+    </Style>
+
+    <!-- Checked — accent barva -->
+    <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background"      Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- Checked + hover -->
+    <Style Selector="ToggleSwitch:checked:pointerover /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background"  Value="{DynamicResource BrushAccentHover}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushAccentHover}"/>
+    </Style>
+
+    <!-- Checked + pressed -->
+    <Style Selector="ToggleSwitch:checked:pressed /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background"  Value="{DynamicResource BrushAccentPressed}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushAccentPressed}"/>
+    </Style>
+
 </Styles>

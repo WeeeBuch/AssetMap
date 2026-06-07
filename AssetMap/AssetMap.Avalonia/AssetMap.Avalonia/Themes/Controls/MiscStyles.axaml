@@ -37,24 +37,24 @@
     </Style>
 
     <Style Selector="Border.chip.success">
-        <Setter Property="Background"  Value="#204EC994"/>
-        <Setter Property="BorderBrush" Value="#404EC994"/>
+        <Setter Property="Background"  Value="#2500E57A"/>
+        <Setter Property="BorderBrush" Value="#5000E57A"/>
     </Style>
     <Style Selector="Border.chip.success > TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource BrushSuccess}"/>
     </Style>
 
     <Style Selector="Border.chip.danger">
-        <Setter Property="Background"  Value="#20F14C4C"/>
-        <Setter Property="BorderBrush" Value="#40F14C4C"/>
+        <Setter Property="Background"  Value="#25FF3355"/>
+        <Setter Property="BorderBrush" Value="#50FF3355"/>
     </Style>
     <Style Selector="Border.chip.danger > TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource BrushDanger}"/>
     </Style>
 
     <Style Selector="Border.chip.warning">
-        <Setter Property="Background"  Value="#20CCA700"/>
-        <Setter Property="BorderBrush" Value="#40CCA700"/>
+        <Setter Property="Background"  Value="#25FFAA00"/>
+        <Setter Property="BorderBrush" Value="#50FFAA00"/>
     </Style>
     <Style Selector="Border.chip.warning > TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource BrushWarning}"/>

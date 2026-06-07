@@ -56,8 +56,8 @@
                 <!-- Status — OK -->
                 <Border Margin="0 12 0 0"
                         CornerRadius="4" Padding="12 9"
-                        Background="#204EC994"
-                        BorderBrush="#404EC994" BorderThickness="1"
+                        Background="#2500E57A"
+                        BorderBrush="#5000E57A" BorderThickness="1"
                         IsVisible="{Binding ConnectionOk}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="✓"
@@ -72,8 +72,8 @@
                 <!-- Status — chyba -->
                 <Border Margin="0 12 0 0"
                         CornerRadius="4" Padding="12 9"
-                        Background="#20F14C4C"
-                        BorderBrush="#40F14C4C" BorderThickness="1">
+                        Background="#25FF3355"
+                        BorderBrush="#50FF3355" BorderThickness="1">
                     <Border.IsVisible>
                         <MultiBinding Converter="{x:Static BoolConverters.And}">
                             <Binding Path="ConnectionStatus"
@@ -143,7 +143,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                     <Border Width="24" Height="24" CornerRadius="12"
-                                            Background="#0078D4"/>
+                                            Background="#00B3FF"/>
                                 </Button>
                             </Panel>
                             <TextBlock Text="Modrá" FontSize="11"
@@ -164,7 +164,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                     <Border Width="24" Height="24" CornerRadius="12"
-                                            Background="#A371F7"/>
+                                            Background="#C44DFF"/>
                                 </Button>
                             </Panel>
                             <TextBlock Text="Fialová" FontSize="11"
@@ -185,7 +185,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                     <Border Width="24" Height="24" CornerRadius="12"
-                                            Background="#4EC994"/>
+                                            Background="#00E57A"/>
                                 </Button>
                             </Panel>
                             <TextBlock Text="Zelená" FontSize="11"
@@ -206,10 +206,73 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                     <Border Width="24" Height="24" CornerRadius="12"
-                                            Background="#CE9178"/>
+                                            Background="#FF6B00"/>
                                 </Button>
                             </Panel>
                             <TextBlock Text="Oranžová" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </StackPanel>
+
+                        <!-- Tmavě zelená -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentDarkGreen}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentDarkGreenCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#00994D"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Tm. zelená" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </StackPanel>
+
+                        <!-- Tmavě modrá -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentDarkBlue}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentDarkBlueCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#0044EE"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Tm. modrá" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                        </StackPanel>
+
+                        <!-- Červená -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentRed}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentRedCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#FF1A1A"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Červená" FontSize="11"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>

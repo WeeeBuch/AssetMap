@@ -1,11 +1,11 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <SolidColorBrush x:Key="BrushAccent">#A371F7</SolidColorBrush>
-    <SolidColorBrush x:Key="BrushAccentHover">#B389FF</SolidColorBrush>
-    <SolidColorBrush x:Key="BrushAccentPressed">#8B5CF6</SolidColorBrush>
-    <Color x:Key="ColorAccent">#A371F7</Color>
-    <Color x:Key="ColorAccentHover">#B389FF</Color>
-    <Color x:Key="ColorAccentPressed">#8B5CF6</Color>
+    <SolidColorBrush x:Key="BrushAccent">#C44DFF</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushAccentHover">#D480FF</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushAccentPressed">#A020D0</SolidColorBrush>
+    <Color x:Key="ColorAccent">#C44DFF</Color>
+    <Color x:Key="ColorAccentHover">#D480FF</Color>
+    <Color x:Key="ColorAccentPressed">#A020D0</Color>
 
 </ResourceDictionary>

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace AssetMap.Avalonia.Services;
 
 public enum AppTheme { Dark, Light }
-public enum AccentColor { Blue, Purple, Green, Orange }
+public enum AccentColor { Blue, Purple, Green, Orange, DarkGreen, DarkBlue, Red }
 
 public static class ThemeService
 {
@@ -15,10 +15,13 @@ public static class ThemeService
 
     private static readonly Dictionary<AccentColor, string> AccentUris = new()
     {
-        [AccentColor.Blue]   = $"avares://{AssemblyName}/Themes/Accents/Blue.axaml",
-        [AccentColor.Purple] = $"avares://{AssemblyName}/Themes/Accents/Purple.axaml",
-        [AccentColor.Green]  = $"avares://{AssemblyName}/Themes/Accents/Green.axaml",
-        [AccentColor.Orange] = $"avares://{AssemblyName}/Themes/Accents/Orange.axaml",
+        [AccentColor.Blue]      = $"avares://{AssemblyName}/Themes/Accents/Blue.axaml",
+        [AccentColor.Purple]    = $"avares://{AssemblyName}/Themes/Accents/Purple.axaml",
+        [AccentColor.Green]     = $"avares://{AssemblyName}/Themes/Accents/Green.axaml",
+        [AccentColor.Orange]    = $"avares://{AssemblyName}/Themes/Accents/Orange.axaml",
+        [AccentColor.DarkGreen] = $"avares://{AssemblyName}/Themes/Accents/DarkGreen.axaml",
+        [AccentColor.DarkBlue]  = $"avares://{AssemblyName}/Themes/Accents/DarkBlue.axaml",
+        [AccentColor.Red]       = $"avares://{AssemblyName}/Themes/Accents/Red.axaml",
     };
 
     private static AppTheme _currentTheme = AppTheme.Dark;
