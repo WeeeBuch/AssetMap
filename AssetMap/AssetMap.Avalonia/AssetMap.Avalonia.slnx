@@ -1,0 +1,11 @@
+﻿<Solution>
+  <Project Path="AssetMap.Avalonia.Android/AssetMap.Avalonia.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="AssetMap.Avalonia.Browser/AssetMap.Avalonia.Browser.csproj" />
+  <Project Path="AssetMap.Avalonia.Desktop/AssetMap.Avalonia.Desktop.csproj" />
+  <Project Path="AssetMap.Avalonia.iOS/AssetMap.Avalonia.iOS.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="AssetMap.Avalonia/AssetMap.Avalonia.csproj" />
+</Solution>
