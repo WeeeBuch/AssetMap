@@ -24,6 +24,9 @@ public partial class SimpleLineChart : UserControl
     public static readonly StyledProperty<int[]> WithdrawalIndicesProperty =
         AvaloniaProperty.Register<SimpleLineChart, int[]>(nameof(WithdrawalIndices), []);
 
+    public static readonly StyledProperty<bool> IsSparklineProperty =
+        AvaloniaProperty.Register<SimpleLineChart, bool>(nameof(IsSparkline), false);
+
     public double[] BalanceHistory
     {
         get => GetValue(BalanceHistoryProperty);
@@ -42,8 +45,18 @@ public partial class SimpleLineChart : UserControl
         set => SetValue(WithdrawalIndicesProperty, value);
     }
 
+    public bool IsSparkline
+    {
+        get => GetValue(IsSparklineProperty);
+        set => SetValue(IsSparklineProperty, value);
+    }
+
     // ── Layout ────────────────────────────────────────────────
-    private const double PadL = 62, PadR = 14, PadT = 12, PadB = 28;
+    // Dynamické paddingsy — fullmode vs sparkline
+    private double PadL => IsSparkline ?  2 : 62;
+    private double PadR => IsSparkline ?  2 : 14;
+    private double PadT => IsSparkline ?  4 : 12;
+    private double PadB => IsSparkline ?  4 : 28;
 
     // ── Hover stav ────────────────────────────────────────────
     private int? _hoverIdx;
@@ -128,43 +141,46 @@ public partial class SimpleLineChart : UserControl
         double MapY(double v) => PadT + plotH * (1.0 - (v - _vMin) / _vRange);
 
         // ── Barvy ─────────────────────────────────────────────
-        var labelBrush   = new SolidColorBrush(Color.Parse("#6A6A82"));
-        var gridPen      = new Pen(new SolidColorBrush(Color.Parse("#1C1C28")), 1);
-        var axisPen      = new Pen(new SolidColorBrush(Color.Parse("#2A2A38")), 1);
-        var linePen      = new Pen(new SolidColorBrush(Color.Parse("#00B3FF")), 2,
-                              lineCap: PenLineCap.Round);
-        var typeface     = Typeface.Default;
-        const double fs  = 10;
+        var linePen  = new Pen(new SolidColorBrush(Color.Parse("#00B3FF")), 2,
+                          lineCap: PenLineCap.Round);
+        var typeface = Typeface.Default;
+        const double fs = 10;
 
-        // ── Mřížka + popisky Y ────────────────────────────────
-        const int steps = 4;
-        for (int g = 0; g <= steps; g++)
+        // ── Mřížka + popisky Y (jen v plném módu) ────────────
+        if (!IsSparkline)
         {
-            double t = (double)g / steps;
-            double y = PadT + plotH * t;
-            double v = _vMin + _vRange * (1 - t);
+            var labelBrush = new SolidColorBrush(Color.Parse("#6A6A82"));
+            var gridPen    = new Pen(new SolidColorBrush(Color.Parse("#1C1C28")), 1);
+            var axisPen    = new Pen(new SolidColorBrush(Color.Parse("#2A2A38")), 1);
+            const int steps = 4;
+            for (int g = 0; g <= steps; g++)
+            {
+                double t = (double)g / steps;
+                double y = PadT + plotH * t;
+                double v = _vMin + _vRange * (1 - t);
 
-            ctx.DrawLine(g == 0 || g == steps ? axisPen : gridPen,
-                         new Point(PadL, y), new Point(w - PadR, y));
+                ctx.DrawLine(g == 0 || g == steps ? axisPen : gridPen,
+                             new Point(PadL, y), new Point(w - PadR, y));
 
-            var ft = new FormattedText(
-                FormatValue(v), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                typeface, fs, labelBrush);
-            ctx.DrawText(ft, new Point(PadL - ft.Width - 5, y - ft.Height / 2));
-        }
+                var ft = new FormattedText(
+                    FormatValue(v), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    typeface, fs, labelBrush);
+                ctx.DrawText(ft, new Point(PadL - ft.Width - 5, y - ft.Height / 2));
+            }
 
-        // ── Popisky X (5 datumů) ──────────────────────────────
-        var baseDate   = DateTime.Now.Date.AddDays(-(n - 1));
-        const int xlbl = 5;
-        for (int i = 0; i < xlbl; i++)
-        {
-            int    idx  = i == xlbl - 1 ? n - 1 : (n - 1) * i / (xlbl - 1);
-            double x    = MapX(idx);
-            var    ft   = new FormattedText(
-                baseDate.AddDays(idx).ToString("d. M."),
-                CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                typeface, fs, labelBrush);
-            ctx.DrawText(ft, new Point(x - ft.Width / 2, h - PadB + 5));
+            // Popisky X (5 datumů)
+            var baseDate2  = DateTime.Now.Date.AddDays(-(n - 1));
+            const int xlbl = 5;
+            for (int i = 0; i < xlbl; i++)
+            {
+                int    idx  = i == xlbl - 1 ? n - 1 : (n - 1) * i / (xlbl - 1);
+                double x    = MapX(idx);
+                var    ft   = new FormattedText(
+                    baseDate2.AddDays(idx).ToString("d. M."),
+                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    typeface, fs, labelBrush);
+                ctx.DrawText(ft, new Point(x - ft.Width / 2, h - PadB + 5));
+            }
         }
 
         // ── Gradient fill pod čárou ───────────────────────────
@@ -205,8 +221,8 @@ public partial class SimpleLineChart : UserControl
         DrawDots(ctx, pts, n, DepositIndices,    Color.Parse("#00E57A"), MapX, MapY);
         DrawDots(ctx, pts, n, WithdrawalIndices, Color.Parse("#FF3355"), MapX, MapY);
 
-        // ── Hover ─────────────────────────────────────────────
-        if (_hoverIdx.HasValue && _hoverIdx.Value < n)
+        // ── Hover (jen v plném módu) ──────────────────────────
+        if (!IsSparkline && _hoverIdx.HasValue && _hoverIdx.Value < n)
         {
             int    hi  = _hoverIdx.Value;
             double hx  = MapX(hi);
@@ -223,6 +239,7 @@ public partial class SimpleLineChart : UserControl
                             new Point(hx, hy), 5, 5);
 
             // Tooltip
+            var baseDate = DateTime.Now.Date.AddDays(-(n - 1));
             var date = baseDate.AddDays(hi);
             string tip = $"{date:d. M. yyyy}   {FormatValue(pts[hi])}";
             var tipFt  = new FormattedText(

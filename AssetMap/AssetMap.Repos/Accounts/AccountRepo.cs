@@ -18,6 +18,9 @@ public static class AccountRepo
 
     public static IReadOnlyList<AccountData> GetAll() => _cache;
 
+    /// <summary>Vyvolá se po každém úspěšném RefreshAsync (na thread poolu).</summary>
+    public static event Action? DataRefreshed;
+
     // ── API volání ────────────────────────────────────────────
     /// <summary>
     /// Načte data ze serveru a uloží do cache.
@@ -26,6 +29,7 @@ public static class AccountRepo
     public static Task RefreshAsync()
     {
         _cache = GenerateMock();
+        DataRefreshed?.Invoke();
         return Task.CompletedTask;
     }
 
@@ -69,10 +73,10 @@ public static class AccountRepo
               startBalance: 185_000, convertedCurrency: "EUR", conversionRate: 0.040, seed: 2),
 
         Build("Revolut",       "Revolut",           AccountType.Bank,         AsstEur,
-              startBalance: 2_400,   convertedCurrency: "USD", conversionRate: 1.085, seed: 3),
+              startBalance: 2_400,   convertedCurrency: "EUR", conversionRate: 1.0, seed: 3),
 
         Build("Bitstamp",      "Bitcoin",           AccountType.CryptoWallet, AsstBtc,
-              startBalance: 0.85,    convertedCurrency: "USD", conversionRate: 82_000, seed: 4),
+              startBalance: 0.85,    convertedCurrency: "EUR", conversionRate: 75_500, seed: 4),
     ];
 
     private static AccountData Build(
@@ -85,11 +89,11 @@ public static class AccountRepo
         var accountId = Guid.NewGuid();
         var now       = DateTime.Today;
 
-        var history      = new double[60];
+        var history      = new double[365];
         var transactions = new List<Transaction>();
         double balance   = startBalance;
 
-        for (int i = 0; i < 60; i++)
+        for (int i = 0; i < 365; i++)
         {
             double delta = (rng.NextDouble() - 0.44) * startBalance * 0.025;
             balance      = Math.Max(balance + delta, startBalance * 0.1);
@@ -105,7 +109,7 @@ public static class AccountRepo
                 {
                     Id           = Guid.NewGuid(),
                     AccountId    = accountId,
-                    Date         = now.AddDays(i - 59),
+                    Date         = now.AddDays(i - 364),
                     Type         = credit ? TransactionType.Deposit : TransactionType.Withdrawal,
                     AssetId      = asset.Id,
                     Asset        = asset,

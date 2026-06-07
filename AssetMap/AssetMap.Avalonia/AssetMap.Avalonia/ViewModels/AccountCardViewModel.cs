@@ -57,11 +57,16 @@ public partial class AccountCardViewModel : ViewModelBase
     public ObservableCollection<TransactionDisplayItem> Transactions { get; init; } = [];
 
     // ── Real data factory ─────────────────────────────────────
-    public static AccountCardViewModel FromData(AccountData data, double conversionRate = 1.0)
+    public static AccountCardViewModel FromData(AccountData data)
     {
         var acc      = data.Account;
         var history  = data.BalanceHistory;
         var iconBrush = IconBrushFor(acc.AccountType, acc.Name);
+
+        // Konverzní kurz = ConvertedBalance / CurrentBalance (např. CZK→EUR)
+        double conversionRate = data.ConvertedBalance.HasValue && data.CurrentBalance > 0
+            ? data.ConvertedBalance.Value / data.CurrentBalance
+            : 1.0;
 
         // Deposit / withdrawal indices z dat transakcí
         var baseDate = DateTime.Today.AddDays(-(history.Length - 1));

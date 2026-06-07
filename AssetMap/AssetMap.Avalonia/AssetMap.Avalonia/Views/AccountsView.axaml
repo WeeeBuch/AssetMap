@@ -8,27 +8,8 @@
         <vm:AccountsViewModel/>
     </Design.DataContext>
 
-    <UserControl.Styles>
-        <!-- Segmented toggle tlačítka -->
-        <Style Selector="Button.seg /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="12 5"/>
-        </Style>
-        <Style Selector="Button.seg">
-            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="5"/>
-        </Style>
-        <Style Selector="Button.seg.on /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
-        </Style>
-        <Style Selector="Button.seg.on">
-            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
-        </Style>
-    </UserControl.Styles>
 
-    <StackPanel Spacing="0">
+<StackPanel Spacing="0">
 
         <!-- ══════════════════════════════════
              HORIZONTÁLNÍ PRUH KARET
@@ -215,20 +196,19 @@
             <Border Grid.Column="1" Classes="card">
                 <StackPanel Spacing="14">
 
-                    <!-- Hlavička + toggle -->
-                    <Grid ColumnDefinitions="*,Auto">
+                    <!-- Hlavička + toggles -->
+                    <Grid ColumnDefinitions="*,Auto,8,Auto">
                         <TextBlock Grid.Column="0"
                                    Text="Vývoj portfolia"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
 
-                        <!-- Segmented toggle -->
+                        <!-- Celkem/Účty toggle -->
                         <Border Grid.Column="1"
                                 CornerRadius="7"
                                 Background="{DynamicResource BrushSurfaceAlt}"
                                 BorderBrush="{DynamicResource BrushBorder}"
-                                BorderThickness="1"
-                                Padding="2">
+                                BorderThickness="1" Padding="2">
                             <StackPanel Orientation="Horizontal" Spacing="0">
                                 <Button Classes="seg"
                                         Classes.on="{Binding IsOnTotalChart}"
@@ -238,6 +218,26 @@
                                         Classes.on="{Binding IsOnAccountsChart}"
                                         Command="{Binding SwitchToAllLinesCommand}"
                                         Content="Účty"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Perioda toggle -->
+                        <Border Grid.Column="3"
+                                CornerRadius="7"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" Padding="2">
+                            <StackPanel Orientation="Horizontal" Spacing="0">
+                                <Button Classes="seg" Classes.on="{Binding IsPeriodD1}"
+                                        Command="{Binding SetPeriodD1Command}" Content="24h"/>
+                                <Button Classes="seg" Classes.on="{Binding IsPeriodD7}"
+                                        Command="{Binding SetPeriodD7Command}" Content="7d"/>
+                                <Button Classes="seg" Classes.on="{Binding IsPeriodM1}"
+                                        Command="{Binding SetPeriodM1Command}" Content="1M"/>
+                                <Button Classes="seg" Classes.on="{Binding IsPeriodM3}"
+                                        Command="{Binding SetPeriodM3Command}" Content="3M"/>
+                                <Button Classes="seg" Classes.on="{Binding IsPeriodY1}"
+                                        Command="{Binding SetPeriodY1Command}" Content="1R"/>
                             </StackPanel>
                         </Border>
                     </Grid>

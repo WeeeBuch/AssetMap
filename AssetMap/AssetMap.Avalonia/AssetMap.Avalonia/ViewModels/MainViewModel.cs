@@ -1,4 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using AssetMap.Avalonia.Services;
+using AssetMap.Entities.Enums;
+using AssetMap.Repos;
+using AssetMap.Repos.Accounts;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -35,7 +41,85 @@ public partial class MainViewModel : ViewModelBase
     };
 
     // Oddělený VM pro Accounts (má vlastní kolekci + selected state)
-    public AccountsViewModel AccountsVM { get; } = new();
+    public AccountsViewModel AccountsVM { get; }
+
+    // ── Dashboard data ────────────────────────────────────────
+    private string _dashboardTotal    = "–";
+    private string _dashboardChange   = "";
+    private bool   _dashboardPositive;
+    private IReadOnlyList<TransactionDisplayItem> _dashboardRecentTxs = [];
+
+    public string DashboardTotal
+    {
+        get => _dashboardTotal;
+        private set { _dashboardTotal = value; OnPropertyChanged(); }
+    }
+    public string DashboardChange
+    {
+        get => _dashboardChange;
+        private set { _dashboardChange = value; OnPropertyChanged(); }
+    }
+    public bool DashboardPositive
+    {
+        get => _dashboardPositive;
+        private set { _dashboardPositive = value; OnPropertyChanged(); }
+    }
+    public IReadOnlyList<TransactionDisplayItem> DashboardRecentTxs
+    {
+        get => _dashboardRecentTxs;
+        private set { _dashboardRecentTxs = value; OnPropertyChanged(); }
+    }
+
+    public MainViewModel()
+    {
+        AccountsVM = new AccountsViewModel();
+        BuildDashboard();
+        // Dashboard se taky aktualizuje po každém price refreshi
+        AccountRepo.DataRefreshed += BuildDashboard;
+        PriceRefreshService.Start();
+    }
+
+    private void BuildDashboard()
+    {
+        var history = AccountsVM.TotalHistory;
+        if (history.Length == 0) { DashboardTotal = "0"; return; }
+
+        double now     = history[^1];
+        double prev    = history.Length > 1 ? history[^2] : now;
+        double chgPct  = prev > 0 ? (now - prev) / prev * 100 : 0;
+        double chgAbs  = now - prev;
+
+        DashboardTotal    = FormatCurrency(now);
+        DashboardChange   = (chgPct >= 0 ? "▲ +" : "▼ ")
+                            + FormatCurrency(System.Math.Abs(chgAbs))
+                            + "  " + (chgPct >= 0 ? "+" : "") + chgPct.ToString("N2") + " %";
+        DashboardPositive = chgPct >= 0;
+
+        var data        = AccountRepo.GetAll();
+        var creditBrush = new SolidColorBrush(Color.Parse("#00E57A"));
+        var debitBrush  = new SolidColorBrush(Color.Parse("#FF3355"));
+
+        DashboardRecentTxs = data
+            .SelectMany(d => d.RecentTransactions.Select(tx => (tx, d.BaseCurrency)))
+            .OrderByDescending(x => x.tx.Date)
+            .Take(8)
+            .Select(x =>
+            {
+                bool isCredit = x.tx.Type == TransactionType.Deposit;
+                return new TransactionDisplayItem(
+                    isCredit ? "↓" : "↑",
+                    isCredit ? (IBrush)creditBrush : debitBrush,
+                    isCredit ? "Příchozí platba" : "Odchozí platba",
+                    x.tx.Date.ToString("dd. MM. yyyy"),
+                    (isCredit ? "+" : "−") + ((double)x.tx.Quantity).ToString("N2") + " " + x.BaseCurrency,
+                    isCredit);
+            })
+            .ToList();
+    }
+
+    private static string FormatCurrency(double v) =>
+        ((long)System.Math.Round(v))
+            .ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
     // ── Sidebar toggle ────────────────────────────────────────
     [ObservableProperty]

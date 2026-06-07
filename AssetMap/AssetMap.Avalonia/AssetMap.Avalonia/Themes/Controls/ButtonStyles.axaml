@@ -136,4 +136,31 @@
         <Setter Property="Background" Value="#D93F3F"/>
     </Style>
 
+
+    <!-- ══════════════════════════════════════
+         SEG — segmentované přepínací tlačítko
+         <Button Classes="seg"> / Classes.on=...
+         ══════════════════════════════════════ -->
+
+    <Style Selector="Button.seg /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="10 4"/>
+    </Style>
+    <Style Selector="Button.seg">
+        <Setter Property="Foreground"      Value="{DynamicResource BrushTextSecondary}"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius"    Value="5"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+    </Style>
+    <Style Selector="Button.seg:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+    </Style>
+    <Style Selector="Button.seg.on /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+    </Style>
+    <Style Selector="Button.seg.on">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    </Style>
+
 </Styles>
