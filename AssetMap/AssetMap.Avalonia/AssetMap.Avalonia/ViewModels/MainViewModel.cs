@@ -41,11 +41,28 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand] private void NavigateToSettings()     => CurrentPage = AppPage.Settings;
 
     // ── Nastavení — Vzhled ─────────────────────────────────────
-    [ObservableProperty] private bool _isDarkTheme = true;
-    [ObservableProperty] private AccentColor _selectedAccent = AccentColor.Blue;
+    [ObservableProperty]
+    private bool _isDarkTheme = SettingsService.Current.IsDarkTheme;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAccentBlue))]
+    [NotifyPropertyChangedFor(nameof(IsAccentPurple))]
+    [NotifyPropertyChangedFor(nameof(IsAccentGreen))]
+    [NotifyPropertyChangedFor(nameof(IsAccentOrange))]
+    private AccentColor _selectedAccent =
+        System.Enum.TryParse<AccentColor>(SettingsService.Current.Accent, out var a) ? a : AccentColor.Blue;
+
+    public bool IsAccentBlue   => SelectedAccent == AccentColor.Blue;
+    public bool IsAccentPurple => SelectedAccent == AccentColor.Purple;
+    public bool IsAccentGreen  => SelectedAccent == AccentColor.Green;
+    public bool IsAccentOrange => SelectedAccent == AccentColor.Orange;
 
     partial void OnIsDarkThemeChanged(bool value)
-        => ThemeService.SetTheme(value ? AppTheme.Dark : AppTheme.Light);
+    {
+        ThemeService.SetTheme(value ? AppTheme.Dark : AppTheme.Light);
+        SettingsService.Current.IsDarkTheme = value;
+        SettingsService.Save();
+    }
 
     [RelayCommand] private void SetAccentBlue()   => ApplyAccent(AccentColor.Blue);
     [RelayCommand] private void SetAccentPurple() => ApplyAccent(AccentColor.Purple);
@@ -56,13 +73,24 @@ public partial class MainViewModel : ViewModelBase
     {
         SelectedAccent = accent;
         ThemeService.SetAccent(accent);
+        SettingsService.Current.Accent = accent.ToString();
+        SettingsService.Save();
     }
 
     // ── Nastavení — Připojení ──────────────────────────────────
-    [ObservableProperty] private string _serverUrl = "http://localhost:5000";
+    [ObservableProperty] private string _serverUrl = SettingsService.Current.ServerUrl;
     [ObservableProperty] private bool _isTestingConnection;
     [ObservableProperty] private string? _connectionStatus;
     [ObservableProperty] private bool _connectionOk;
+
+    partial void OnServerUrlChanged(string value)
+    {
+        SettingsService.Current.ServerUrl = value;
+        SettingsService.Save();
+        // Reset stavu při změně URL
+        ConnectionStatus = null;
+        ConnectionOk = false;
+    }
 
     [RelayCommand]
     private async System.Threading.Tasks.Task TestConnectionAsync()
@@ -78,13 +106,15 @@ public partial class MainViewModel : ViewModelBase
             var response = await http.GetAsync(ServerUrl.TrimEnd('/') + "/health");
             ConnectionOk = response.IsSuccessStatusCode;
             ConnectionStatus = ConnectionOk
-                ? "Připojeno ✓"
-                : $"Chyba: {(int)response.StatusCode}";
+                ? $"Připojeno ✓  ({(int)response.StatusCode})"
+                : $"Chyba {(int)response.StatusCode} – {response.ReasonPhrase}";
         }
-        catch
+        catch (System.Exception ex)
         {
             ConnectionOk = false;
-            ConnectionStatus = "Server nedostupný";
+            ConnectionStatus = ex is System.Net.Http.HttpRequestException
+                ? "Server nedostupný"
+                : ex.Message;
         }
         finally
         {

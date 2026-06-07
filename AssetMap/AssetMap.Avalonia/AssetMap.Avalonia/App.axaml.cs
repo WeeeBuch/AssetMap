@@ -1,3 +1,4 @@
+using AssetMap.Avalonia.Services;
 using AssetMap.Avalonia.ViewModels;
 using AssetMap.Avalonia.Views;
 using Avalonia;
@@ -15,6 +16,12 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Aplikuj uložené nastavení před vytvořením oken
+        var s = SettingsService.Current;
+        ThemeService.SetTheme(s.IsDarkTheme ? AppTheme.Dark : AppTheme.Light);
+        if (System.Enum.TryParse<AccentColor>(s.Accent, out var accent))
+            ThemeService.SetAccent(accent);
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var loginVm = new LoginViewModel();

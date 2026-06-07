@@ -7,59 +7,71 @@
         <vm:MainViewModel/>
     </Design.DataContext>
 
-    <StackPanel Spacing="20" MaxWidth="680" HorizontalAlignment="Left">
+    <StackPanel Spacing="16">
 
-        <!-- ══════════ PŘIPOJENÍ ══════════ -->
-        <Border Classes="card">
-            <StackPanel Spacing="16">
+        <!-- ══════════════════════════════════
+             PŘIPOJENÍ K SERVERU
+             ══════════════════════════════════ -->
+        <Border Classes="card" Padding="24">
+            <StackPanel Spacing="0">
 
-                <StackPanel Spacing="3">
+                <!-- Hlavička -->
+                <StackPanel Spacing="3" Margin="0 0 0 16">
                     <TextBlock Text="Připojení k serveru"
                                FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrushTextPrimary}"/>
-                    <TextBlock Text="Adresa self-hosted AssetMap serveru"
+                    <TextBlock Text="Adresa self-hosted AssetMap instance"
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
 
-                <Border Classes="separator"/>
+                <Border Classes="separator" Margin="0 0 0 16"/>
 
-                <StackPanel Spacing="6">
-                    <TextBlock Text="URL serveru"
-                               FontSize="12" FontWeight="Medium"
-                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <Grid ColumnDefinitions="*,12,Auto">
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding ServerUrl}"
-                                 PlaceholderText="http://localhost:5000"/>
+                <!-- URL vstup -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <StackPanel Grid.Column="0" Spacing="5">
+                        <TextBlock Text="URL serveru"
+                                   FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding ServerUrl}"
+                                 PlaceholderText="http://localhost:5000"
+                                 FontFamily="Consolas,monospace"/>
+                    </StackPanel>
 
-                        <Button Grid.Column="2"
-                                Classes="secondary"
-                                Command="{Binding TestConnectionCommand}"
-                                IsEnabled="{Binding !IsTestingConnection}"
-                                Padding="14 8">
-                            <Panel>
-                                <TextBlock Text="Otestovat"
-                                           IsVisible="{Binding !IsTestingConnection}"/>
-                                <TextBlock Text="Testuji…"
-                                           IsVisible="{Binding IsTestingConnection}"/>
-                            </Panel>
-                        </Button>
-                    </Grid>
-                </StackPanel>
+                    <Button Grid.Column="2"
+                            Classes="secondary"
+                            Command="{Binding TestConnectionCommand}"
+                            IsEnabled="{Binding !IsTestingConnection}"
+                            VerticalAlignment="Bottom"
+                            Padding="16 9">
+                        <Panel>
+                            <TextBlock Text="Otestovat"
+                                       IsVisible="{Binding !IsTestingConnection}"/>
+                            <TextBlock Text="Testuji…"
+                                       IsVisible="{Binding IsTestingConnection}"/>
+                        </Panel>
+                    </Button>
+                </Grid>
 
-                <!-- Stav připojení — OK -->
-                <Border CornerRadius="4" Padding="10 8"
+                <!-- Status — OK -->
+                <Border Margin="0 12 0 0"
+                        CornerRadius="4" Padding="12 9"
                         Background="#204EC994"
                         BorderBrush="#404EC994" BorderThickness="1"
                         IsVisible="{Binding ConnectionOk}">
-                    <TextBlock Text="{Binding ConnectionStatus}"
-                               Foreground="{DynamicResource BrushSuccess}"
-                               FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="✓"
+                                   Foreground="{DynamicResource BrushSuccess}"
+                                   FontWeight="Bold" FontSize="12"/>
+                        <TextBlock Text="{Binding ConnectionStatus}"
+                                   Foreground="{DynamicResource BrushSuccess}"
+                                   FontSize="12"/>
+                    </StackPanel>
                 </Border>
 
-                <!-- Stav připojení — chyba -->
-                <Border CornerRadius="4" Padding="10 8"
+                <!-- Status — chyba -->
+                <Border Margin="0 12 0 0"
+                        CornerRadius="4" Padding="12 9"
                         Background="#20F14C4C"
                         BorderBrush="#40F14C4C" BorderThickness="1">
                     <Border.IsVisible>
@@ -69,100 +81,137 @@
                             <Binding Path="!ConnectionOk"/>
                         </MultiBinding>
                     </Border.IsVisible>
-                    <TextBlock Text="{Binding ConnectionStatus}"
-                               Foreground="{DynamicResource BrushDanger}"
-                               FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="✗"
+                                   Foreground="{DynamicResource BrushDanger}"
+                                   FontWeight="Bold" FontSize="12"/>
+                        <TextBlock Text="{Binding ConnectionStatus}"
+                                   Foreground="{DynamicResource BrushDanger}"
+                                   FontSize="12"/>
+                    </StackPanel>
                 </Border>
 
             </StackPanel>
         </Border>
 
-        <!-- ══════════ VZHLED ══════════ -->
-        <Border Classes="card">
-            <StackPanel Spacing="16">
+        <!-- ══════════════════════════════════
+             VZHLED
+             ══════════════════════════════════ -->
+        <Border Classes="card" Padding="24">
+            <StackPanel Spacing="0">
 
-                <TextBlock Text="Vzhled"
-                           FontSize="15" FontWeight="SemiBold"
-                           Foreground="{DynamicResource BrushTextPrimary}"/>
-
-                <Border Classes="separator"/>
-
-                <!-- Tmavý / světlý -->
-                <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                <!-- Hlavička + dark/light toggle v jednom řádku -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 16">
+                    <TextBlock Grid.Column="0"
+                               Text="Vzhled"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal" Spacing="10"
+                                VerticalAlignment="Center">
                         <TextBlock Text="Tmavý režim"
-                                   FontSize="13" FontWeight="Medium"
-                                   Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <TextBlock Text="Přepíná mezi tmavým a světlým tématem"
                                    FontSize="12"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   VerticalAlignment="Center"/>
+                        <ToggleSwitch IsChecked="{Binding IsDarkTheme}"
+                                      OffContent="" OnContent=""
+                                      VerticalAlignment="Center"/>
                     </StackPanel>
-                    <ToggleSwitch Grid.Column="1"
-                                  IsChecked="{Binding IsDarkTheme}"
-                                  OffContent="" OnContent=""
-                                  VerticalAlignment="Center"/>
                 </Grid>
 
-                <Border Classes="separator"/>
+                <Border Classes="separator" Margin="0 0 0 16"/>
 
                 <!-- Akcentní barva -->
-                <StackPanel Spacing="10">
+                <StackPanel Spacing="12">
                     <TextBlock Text="Akcentní barva"
                                FontSize="13" FontWeight="Medium"
                                Foreground="{DynamicResource BrushTextPrimary}"/>
 
-                    <StackPanel Orientation="Horizontal" Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="20">
 
-                        <StackPanel Spacing="5" HorizontalAlignment="Center">
-                            <Button Classes="ghost" Padding="0"
-                                    Command="{Binding SetAccentBlueCommand}"
-                                    Width="38" Height="38" CornerRadius="19"
-                                    ToolTip.Tip="Modrá">
-                                <Border Width="26" Height="26" CornerRadius="13"
-                                        Background="#0078D4"/>
-                            </Button>
-                            <TextBlock Text="Modrá" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextSecondary}"
-                                       HorizontalAlignment="Center"/>
+                        <!-- Modrá -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentBlue}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentBlueCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#0078D4"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Modrá" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
 
-                        <StackPanel Spacing="5" HorizontalAlignment="Center">
-                            <Button Classes="ghost" Padding="0"
-                                    Command="{Binding SetAccentPurpleCommand}"
-                                    Width="38" Height="38" CornerRadius="19"
-                                    ToolTip.Tip="Fialová">
-                                <Border Width="26" Height="26" CornerRadius="13"
-                                        Background="#A371F7"/>
-                            </Button>
-                            <TextBlock Text="Fialová" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextSecondary}"
-                                       HorizontalAlignment="Center"/>
+                        <!-- Fialová -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentPurple}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentPurpleCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#A371F7"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Fialová" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
 
-                        <StackPanel Spacing="5" HorizontalAlignment="Center">
-                            <Button Classes="ghost" Padding="0"
-                                    Command="{Binding SetAccentGreenCommand}"
-                                    Width="38" Height="38" CornerRadius="19"
-                                    ToolTip.Tip="Zelená">
-                                <Border Width="26" Height="26" CornerRadius="13"
-                                        Background="#4EC994"/>
-                            </Button>
-                            <TextBlock Text="Zelená" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextSecondary}"
-                                       HorizontalAlignment="Center"/>
+                        <!-- Zelená -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentGreen}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentGreenCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#4EC994"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Zelená" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
 
-                        <StackPanel Spacing="5" HorizontalAlignment="Center">
-                            <Button Classes="ghost" Padding="0"
-                                    Command="{Binding SetAccentOrangeCommand}"
-                                    Width="38" Height="38" CornerRadius="19"
-                                    ToolTip.Tip="Oranžová">
-                                <Border Width="26" Height="26" CornerRadius="13"
-                                        Background="#CE9178"/>
-                            </Button>
-                            <TextBlock Text="Oranžová" FontSize="10"
-                                       Foreground="{DynamicResource BrushTextSecondary}"
-                                       HorizontalAlignment="Center"/>
+                        <!-- Oranžová -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <Panel Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        BorderBrush="{DynamicResource BrushAccent}"
+                                        BorderThickness="2.5"
+                                        IsVisible="{Binding IsAccentOrange}"/>
+                                <Button Classes="ghost" Padding="0"
+                                        Command="{Binding SetAccentOrangeCommand}"
+                                        Width="36" Height="36" CornerRadius="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#CE9178"/>
+                                </Button>
+                            </Panel>
+                            <TextBlock Text="Oranžová" FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource BrushTextSecondary}"/>
                         </StackPanel>
 
                     </StackPanel>
@@ -171,35 +220,50 @@
             </StackPanel>
         </Border>
 
-        <!-- ══════════ O APLIKACI ══════════ -->
-        <Border Classes="card">
-            <StackPanel Spacing="12">
+        <!-- ══════════════════════════════════
+             O APLIKACI
+             ══════════════════════════════════ -->
+        <Border Classes="card" Padding="24">
+            <StackPanel Spacing="0">
+
                 <TextBlock Text="O aplikaci"
                            FontSize="15" FontWeight="SemiBold"
-                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           Margin="0 0 0 16"/>
 
-                <Border Classes="separator"/>
+                <Border Classes="separator" Margin="0 0 0 16"/>
 
-                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Verze"
-                               FontSize="13" Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="0.1.0-alpha"
-                               FontSize="13" FontWeight="Medium"
-                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto">
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Platforma"
-                               FontSize="13" Margin="0 8 0 0"
-                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Avalonia UI · .NET 10"
-                               FontSize="13" FontWeight="Medium" Margin="0 8 0 0"
-                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Verze" FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Row="0" Grid.Column="1">
+                        <TextBlock Text="0.1.0-alpha" FontSize="13" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                    </Border>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Licence"
-                               FontSize="13" Margin="0 8 0 0"
-                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="MIT"
-                               FontSize="13" FontWeight="Medium" Margin="0 8 0 0"
-                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="Platforma" FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Margin="0 12 0 0" VerticalAlignment="Center"/>
+                    <Border Grid.Row="1" Grid.Column="1" Margin="0 12 0 0">
+                        <TextBlock Text="Avalonia UI · .NET 10" FontSize="13" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0"
+                               Text="Konfig. soubor" FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Margin="0 12 0 0" VerticalAlignment="Center"/>
+                    <Border Grid.Row="2" Grid.Column="1" Margin="0 12 0 0">
+                        <TextBlock Text="%AppData%\AssetMap\settings.json"
+                                   FontSize="12" FontFamily="Consolas,monospace"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </Border>
+
                 </Grid>
 
             </StackPanel>
