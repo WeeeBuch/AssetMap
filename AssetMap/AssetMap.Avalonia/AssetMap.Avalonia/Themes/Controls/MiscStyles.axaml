@@ -1,0 +1,105 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════════════
+         SEPARATOR — <Border Classes="separator">
+         ══════════════════════════════════════════ -->
+    <Style Selector="Border.separator">
+        <Setter Property="Height"     Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="Margin"     Value="0 8"/>
+    </Style>
+
+    <Style Selector="Border.separator-v">
+        <Setter Property="Width"      Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="Margin"     Value="8 0"/>
+    </Style>
+
+
+    <!-- ══════════════════════════════════════════
+         CHIP / TAG — <Border Classes="chip">
+         Varianty: chip success | danger | warning | accent
+         ══════════════════════════════════════════ -->
+    <Style Selector="Border.chip">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurfaceAlt}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="20"/>
+        <Setter Property="Padding"         Value="10 3"/>
+    </Style>
+
+    <!-- TextBlock uvnitř chipu -->
+    <Style Selector="Border.chip > TextBlock">
+        <Setter Property="FontSize"   Value="11"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+    </Style>
+
+    <Style Selector="Border.chip.success">
+        <Setter Property="Background"  Value="#204EC994"/>
+        <Setter Property="BorderBrush" Value="#404EC994"/>
+    </Style>
+    <Style Selector="Border.chip.success > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource BrushSuccess}"/>
+    </Style>
+
+    <Style Selector="Border.chip.danger">
+        <Setter Property="Background"  Value="#20F14C4C"/>
+        <Setter Property="BorderBrush" Value="#40F14C4C"/>
+    </Style>
+    <Style Selector="Border.chip.danger > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource BrushDanger}"/>
+    </Style>
+
+    <Style Selector="Border.chip.warning">
+        <Setter Property="Background"  Value="#20CCA700"/>
+        <Setter Property="BorderBrush" Value="#40CCA700"/>
+    </Style>
+    <Style Selector="Border.chip.warning > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource BrushWarning}"/>
+    </Style>
+
+    <Style Selector="Border.chip.accent">
+        <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="Border.chip.accent > TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+
+    <!-- ══════════════════════════════════════════
+         SCROLLBAR — tenký, moderní
+         ══════════════════════════════════════════ -->
+    <Style Selector="ScrollBar[Orientation=Vertical]">
+        <Setter Property="Width"   Value="6"/>
+        <Setter Property="Margin"  Value="0 2"/>
+    </Style>
+
+    <Style Selector="ScrollBar[Orientation=Horizontal]">
+        <Setter Property="Height"  Value="6"/>
+        <Setter Property="Margin"  Value="2 0"/>
+    </Style>
+
+    <Style Selector="ScrollBar /template/ Thumb">
+        <Setter Property="Background"  Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="MinHeight"   Value="24"/>
+        <Setter Property="MinWidth"    Value="24"/>
+    </Style>
+
+    <Style Selector="ScrollBar /template/ Thumb:pointerover">
+        <Setter Property="Background" Value="{DynamicResource BrushTextSecondary}"/>
+    </Style>
+
+    <Style Selector="ScrollBar /template/ Thumb:pressed">
+        <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
+    </Style>
+
+    <!-- Skryj šipky -->
+    <Style Selector="ScrollBar /template/ RepeatButton">
+        <Setter Property="IsVisible" Value="False"/>
+    </Style>
+
+</Styles>

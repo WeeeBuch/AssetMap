@@ -12,6 +12,8 @@
         <FluentTheme />
         <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/ButtonStyles.axaml"/>
         <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/CardStyles.axaml"/>
+        <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/InputStyles.axaml"/>
+        <StyleInclude Source="avares://AssetMap.Avalonia/Themes/Controls/MiscStyles.axaml"/>
     </Application.Styles>
 
     <Application.Resources>

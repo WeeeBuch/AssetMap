@@ -1,0 +1,59 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════
+         TEXTBOX — base
+         ══════════════════════════════════ -->
+    <Style Selector="TextBox">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurfaceAlt}"/>
+        <Setter Property="Foreground"      Value="{DynamicResource BrushTextPrimary}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="4"/>
+        <Setter Property="Padding"         Value="10 8"/>
+        <Setter Property="FontSize"        Value="13"/>
+        <Setter Property="MinHeight"       Value="0"/>
+        <Setter Property="SelectionBrush"  Value="{DynamicResource BrushAccent}"/>
+    </Style>
+
+    <!-- Hover -->
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushTextSecondary}"/>
+    </Style>
+
+    <!-- Focus — accent border -->
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="BorderThickness" Value="1 1 1 2"/>
+    </Style>
+
+    <!-- Disabled -->
+    <Style Selector="TextBox:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+    </Style>
+
+    <!-- Placeholder barva — PART_Watermark zůstal interní název i po přejmenování property -->
+    <Style Selector="TextBox /template/ TextBlock#PART_Watermark">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+        <Setter Property="Opacity"    Value="0.55"/>
+    </Style>
+    <!-- Fallback pro verze kde se část přejmenovala -->
+    <Style Selector="TextBox /template/ TextBlock#PART_PlaceholderText">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+        <Setter Property="Opacity"    Value="0.55"/>
+    </Style>
+
+
+    <!-- ══════════════════════════════════
+         TEXTBOX.error — červený border
+         Classes="error"
+         ══════════════════════════════════ -->
+    <Style Selector="TextBox.error">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushDanger}"/>
+    </Style>
+
+    <Style Selector="TextBox.error:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushDanger}"/>
+    </Style>
+
+</Styles>
