@@ -37,6 +37,15 @@ public partial class MainViewModel : ViewModelBase
     // Oddělený VM pro Accounts (má vlastní kolekci + selected state)
     public AccountsViewModel AccountsVM { get; } = new();
 
+    // ── Sidebar toggle ────────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SidebarWidth))]
+    private bool _isSidebarOpen = true;
+
+    public double SidebarWidth => IsSidebarOpen ? 220.0 : 56.0;
+
+    [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
+
     [RelayCommand] private void NavigateToDashboard()    => CurrentPage = AppPage.Dashboard;
     [RelayCommand] private void NavigateToAccounts()     => CurrentPage = AppPage.Accounts;
     [RelayCommand] private void NavigateToTransactions() => CurrentPage = AppPage.Transactions;

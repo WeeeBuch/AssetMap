@@ -39,6 +39,7 @@ public static class AccountRepo
         return _cache;
     }
 
+#if DEBUG
     // ── Mock data ─────────────────────────────────────────────
     // Statické assety (v produkci přijdou ze serveru)
     private static readonly Guid _userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
@@ -135,4 +136,7 @@ public static class AccountRepo
             RecentTransactions = [.. transactions.OrderByDescending(t => t.Date).Take(25)],
         };
     }
+
+#endif
+
 }

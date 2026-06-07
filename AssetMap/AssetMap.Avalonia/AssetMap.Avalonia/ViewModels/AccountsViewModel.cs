@@ -69,6 +69,15 @@ public partial class AccountsViewModel : ViewModelBase
         account.IsSelected = true;
     }
 
+    // ── Zavřít detail ────────────────────────────────────────
+    [RelayCommand]
+    private void CloseDetail()
+    {
+        if (SelectedAccount is not null)
+            SelectedAccount.IsSelected = false;
+        SelectedAccount = null;
+    }
+
     // ── Přidat účet ───────────────────────────────────────────
     [RelayCommand]
     private void AddAccount()

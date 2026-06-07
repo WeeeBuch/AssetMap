@@ -10,57 +10,130 @@
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BrushBackground}">
 
-    <Grid ColumnDefinitions="220,*">
+    <Window.Styles>
+        <!-- Nav tlačítka v sidebaru -->
+        <Style Selector="Button.nav">
+            <Setter Property="Background"                 Value="Transparent"/>
+            <Setter Property="Foreground"                 Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="BorderThickness"            Value="0"/>
+            <Setter Property="CornerRadius"               Value="6"/>
+            <Setter Property="Padding"                    Value="10 8"/>
+            <Setter Property="HorizontalAlignment"        Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FontSize"                   Value="13"/>
+            <Setter Property="Cursor"                     Value="Hand"/>
+        </Style>
+        <Style Selector="Button.nav /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+        <Style Selector="Button.nav.active">
+            <Setter Property="Foreground" Value="{DynamicResource BrushAccent}"/>
+        </Style>
+        <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="Auto,*">
 
         <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
         <Border Grid.Column="0"
+                Width="{Binding SidebarWidth}"
                 Background="{DynamicResource BrushSurfaceAlt}"
                 BorderBrush="{DynamicResource BrushBorder}"
-                BorderThickness="0 0 1 0">
+                BorderThickness="0 0 1 0"
+                ClipToBounds="True">
             <DockPanel>
 
                 <!-- Logo -->
-                <Border DockPanel.Dock="Top" Padding="16 20 16 12">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="32" Height="32" CornerRadius="8">
+                <Border DockPanel.Dock="Top" Padding="12 18 12 12">
+                    <Grid Height="32">
+                        <!-- Otevřeno: ikona + název -->
+                        <StackPanel Orientation="Horizontal" Spacing="10"
+                                    IsVisible="{Binding IsSidebarOpen}"
+                                    VerticalAlignment="Center">
+                            <Border Width="32" Height="32" CornerRadius="8">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                        <GradientStop Color="#FF0078D4" Offset="0"/>
+                                        <GradientStop Color="#FF00B4D8" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <TextBlock Text="A" FontSize="17" FontWeight="Bold" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="AssetMap" FontSize="15" FontWeight="Bold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Zavřeno: jen ikona, vycentrovaná -->
+                        <Border Width="32" Height="32" CornerRadius="8"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                IsVisible="{Binding !IsSidebarOpen}">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
                                     <GradientStop Color="#FF0078D4" Offset="0"/>
                                     <GradientStop Color="#FF00B4D8" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
-                            <TextBlock Text="A"
-                                       FontSize="17" FontWeight="Bold"
-                                       Foreground="White"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="A" FontSize="17" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="AssetMap"
-                                   FontSize="15" FontWeight="Bold"
-                                   Foreground="{DynamicResource BrushTextPrimary}"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Separator -->
-                <Border DockPanel.Dock="Top"
-                        Height="1"
+                <Border DockPanel.Dock="Top" Height="1"
                         Background="{DynamicResource BrushBorder}"
-                        Margin="0 0 0 8"/>
+                        Margin="0 0 0 6"/>
 
-                <!-- Settings dole -->
+                <!-- Spodní oblast: Settings + Toggle -->
                 <Border DockPanel.Dock="Bottom"
                         BorderBrush="{DynamicResource BrushBorder}"
                         BorderThickness="0 1 0 0"
-                        Padding="8 8">
-                    <Button Classes="nav"
-                            Classes.active="{Binding IsOnSettings}"
-                            Command="{Binding NavigateToSettingsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="⚙" FontSize="14"/>
-                            <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        Padding="8 6">
+                    <StackPanel Spacing="2">
+
+                        <Button Classes="nav"
+                                Classes.active="{Binding IsOnSettings}"
+                                Command="{Binding NavigateToSettingsCommand}"
+                                ToolTip.Tip="Nastavení">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="10"
+                                            IsVisible="{Binding IsSidebarOpen}">
+                                    <TextBlock Text="⚙" FontSize="14" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="⚙" FontSize="14"
+                                           IsVisible="{Binding !IsSidebarOpen}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                        <!-- Collapse / Expand tlačítko -->
+                        <Button Classes="nav"
+                                Command="{Binding ToggleSidebarCommand}"
+                                ToolTip.Tip="Skrýt / zobrazit panel">
+                            <Grid>
+                                <TextBlock Text="‹ Skrýt" FontSize="12"
+                                           IsVisible="{Binding IsSidebarOpen}"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="›" FontSize="16"
+                                           IsVisible="{Binding !IsSidebarOpen}"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                    </StackPanel>
                 </Border>
 
                 <!-- Navigace -->
@@ -69,49 +142,77 @@
                     <TextBlock Text="PŘEHLED"
                                FontSize="10" FontWeight="Bold"
                                Foreground="{DynamicResource BrushTextSecondary}"
-                               Margin="12 8 0 4"
-                               Opacity="0.7"/>
+                               Margin="12 6 0 4" Opacity="0.7"
+                               IsVisible="{Binding IsSidebarOpen}"/>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnDashboard}"
-                            Command="{Binding NavigateToDashboardCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="◈" FontSize="14"/>
-                            <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToDashboardCommand}"
+                            ToolTip.Tip="Dashboard">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="◈" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="◈" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <TextBlock Text="SPRÁVA"
                                FontSize="10" FontWeight="Bold"
                                Foreground="{DynamicResource BrushTextSecondary}"
-                               Margin="12 12 0 4"
-                               Opacity="0.7"/>
+                               Margin="12 10 0 4" Opacity="0.7"
+                               IsVisible="{Binding IsSidebarOpen}"/>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnAccounts}"
-                            Command="{Binding NavigateToAccountsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="⬡" FontSize="14"/>
-                            <TextBlock Text="Účty" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToAccountsCommand}"
+                            ToolTip.Tip="Účty">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="⬡" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Účty" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="⬡" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnTransactions}"
-                            Command="{Binding NavigateToTransactionsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="↕" FontSize="14"/>
-                            <TextBlock Text="Transakce" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToTransactionsCommand}"
+                            ToolTip.Tip="Transakce">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="↕" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Transakce" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="↕" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnAssets}"
-                            Command="{Binding NavigateToAssetsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="▦" FontSize="14"/>
-                            <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToAssetsCommand}"
+                            ToolTip.Tip="Aktiva">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="▦" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="▦" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                 </StackPanel>
@@ -149,8 +250,7 @@
                                     <GradientStop Color="#FF00B4D8" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
-                            <TextBlock Text="U"
-                                       Foreground="White"
+                            <TextBlock Text="U" Foreground="White"
                                        FontWeight="Bold" FontSize="13"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
@@ -166,7 +266,6 @@
                 <Panel>
                     <views:MainView Margin="24"
                                     IsVisible="{Binding IsOnDashboard}"/>
-                    <!-- Panel drží IsVisible na MainViewModel, AccountsView dostane svůj VM -->
                     <Panel IsVisible="{Binding IsOnAccounts}">
                         <views:AccountsView Margin="24"
                                             DataContext="{Binding AccountsVM}"/>

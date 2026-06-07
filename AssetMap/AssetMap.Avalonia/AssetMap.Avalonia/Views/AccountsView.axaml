@@ -287,7 +287,7 @@
                     IsVisible="{Binding HasSelectedAccount}">
 
             <!-- Hlavička detailu -->
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Text="{Binding SelectedAccount.AccountName}"
                                FontSize="17" FontWeight="SemiBold"
@@ -296,7 +296,8 @@
                                FontSize="12"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Right">
+                <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Right"
+                            Margin="0 0 16 0">
                     <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
                         <TextBlock Text="{Binding SelectedAccount.BaseAmount}"
                                    FontSize="20" FontWeight="Bold"
@@ -311,6 +312,22 @@
                                HorizontalAlignment="Right"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
+
+                <!-- Zavřít detail -->
+                <Button Grid.Column="2"
+                        Classes="ghost"
+                        Command="{Binding CloseDetailCommand}"
+                        VerticalAlignment="Top"
+                        Width="30" Height="30"
+                        Padding="0"
+                        CornerRadius="8"
+                        ToolTip.Tip="Zavřít">
+                    <TextBlock Text="✕"
+                               FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Button>
             </Grid>
 
             <!-- Graf vývoje + tečky transakcí -->
