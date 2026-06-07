@@ -1,12 +1,176 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AssetMap.Avalonia.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="using:AssetMap.Avalonia.Views"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="AssetMap.Avalonia.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="AssetMap.Avalonia">
-        <views:MainView />
+        x:DataType="vm:MainViewModel"
+        Title="AssetMap"
+        MinWidth="900" MinHeight="600"
+        Width="1200" Height="750"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BrushBackground}">
+
+    <Grid ColumnDefinitions="220,*">
+
+        <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource BrushSurfaceAlt}"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="0 0 1 0">
+            <DockPanel>
+
+                <!-- Logo -->
+                <Border DockPanel.Dock="Top" Padding="16 20 16 12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="32" Height="32" CornerRadius="8">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                    <GradientStop Color="#FF0078D4" Offset="0"/>
+                                    <GradientStop Color="#FF00B4D8" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="A"
+                                       FontSize="17" FontWeight="Bold"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="AssetMap"
+                                   FontSize="15" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Separator -->
+                <Border DockPanel.Dock="Top"
+                        Height="1"
+                        Background="{DynamicResource BrushBorder}"
+                        Margin="0 0 0 8"/>
+
+                <!-- Settings dole -->
+                <Border DockPanel.Dock="Bottom"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="0 1 0 0"
+                        Padding="8 8">
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnSettings}"
+                            Command="{Binding NavigateToSettingsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="⚙" FontSize="14"/>
+                            <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Border>
+
+                <!-- Navigace -->
+                <StackPanel DockPanel.Dock="Top" Margin="8 4" Spacing="2">
+
+                    <TextBlock Text="PŘEHLED"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Margin="12 8 0 4"
+                               Opacity="0.7"/>
+
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnDashboard}"
+                            Command="{Binding NavigateToDashboardCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="◈" FontSize="14"/>
+                            <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Text="SPRÁVA"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Margin="12 12 0 4"
+                               Opacity="0.7"/>
+
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnAccounts}"
+                            Command="{Binding NavigateToAccountsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="⬡" FontSize="14"/>
+                            <TextBlock Text="Účty" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnTransactions}"
+                            Command="{Binding NavigateToTransactionsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="↕" FontSize="14"/>
+                            <TextBlock Text="Transakce" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="nav"
+                            Classes.active="{Binding IsOnAssets}"
+                            Command="{Binding NavigateToAssetsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="▦" FontSize="14"/>
+                            <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                </StackPanel>
+
+                <Grid/>
+            </DockPanel>
+        </Border>
+
+        <!-- ══════════════════════ MAIN AREA ══════════════════════ -->
+        <Grid Grid.Column="1" RowDefinitions="56,*">
+
+            <!-- Topbar -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource BrushSurface}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="0 0 0 1"
+                    Padding="24 0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <Button Classes="ghost" Padding="7" CornerRadius="6">
+                            <TextBlock Text="🔔" FontSize="14"/>
+                        </Button>
+                        <Border Width="32" Height="32" CornerRadius="16">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                    <GradientStop Color="#FF0078D4" Offset="0"/>
+                                    <GradientStop Color="#FF00B4D8" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="U"
+                                       Foreground="White"
+                                       FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Obsah stránky -->
+            <ScrollViewer Grid.Row="1"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <Panel>
+                    <views:MainView Margin="24"
+                                    IsVisible="{Binding IsOnDashboard}"/>
+                    <views:SettingsView Margin="24"
+                                        IsVisible="{Binding IsOnSettings}"/>
+                </Panel>
+            </ScrollViewer>
+
+        </Grid>
+    </Grid>
 </Window>

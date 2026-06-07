@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.Components.EmptyState"
+             x:DataType="components:EmptyState">
+
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12"
+                Margin="0 32">
+
+        <!-- Ikona v kruhu -->
+        <Border Width="64" Height="64"
+                CornerRadius="32"
+                Background="{DynamicResource BrushSurfaceAlt}"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="1"
+                HorizontalAlignment="Center">
+            <TextBlock Text="{Binding Icon}"
+                       FontSize="26"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Texty -->
+        <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding Title}"
+                       FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrushTextPrimary}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding Description}"
+                       FontSize="13"
+                       Foreground="{DynamicResource BrushTextSecondary}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       IsVisible="{Binding Description,
+                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <!-- Akce -->
+        <Button Content="{Binding ActionText}"
+                Command="{Binding ActionCommand}"
+                HorizontalAlignment="Center"
+                Padding="16 8"
+                IsVisible="{Binding ActionText,
+                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+    </StackPanel>
+</UserControl>

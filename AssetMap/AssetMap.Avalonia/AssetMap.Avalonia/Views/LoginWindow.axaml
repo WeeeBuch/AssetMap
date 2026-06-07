@@ -1,0 +1,179 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AssetMap.Avalonia.ViewModels"
+        x:Class="AssetMap.Avalonia.Views.LoginWindow"
+        x:DataType="vm:LoginViewModel"
+        Title="AssetMap"
+        Width="440" Height="560"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BrushBackground}">
+
+    <Grid>
+        <!-- Jemný gradient pozadí -->
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF0A0A0F" Offset="0"/>
+                    <GradientStop Color="#FF0D0D22" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Přihlašovací karta -->
+        <Border Width="360"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Background="{DynamicResource BrushSurface}"
+                BorderBrush="{DynamicResource BrushBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                BoxShadow="0 8 40 0 #40000000"
+                Padding="40 44">
+            <StackPanel Spacing="0">
+
+                <!-- Logo + název -->
+                <StackPanel HorizontalAlignment="Center" Spacing="10" Margin="0 0 0 32">
+                    <Border Width="56" Height="56"
+                            CornerRadius="14"
+                            HorizontalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                <GradientStop Color="#FF0078D4" Offset="0"/>
+                                <GradientStop Color="#FF00B4D8" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="A"
+                                   FontSize="26" FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <TextBlock Text="AssetMap"
+                               FontSize="22" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               HorizontalAlignment="Center"/>
+
+                    <TextBlock Text="Správa vašeho portfolia"
+                               FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Formulář -->
+                <StackPanel Spacing="12">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Uživatelské jméno"
+                                   FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding Username}"
+                                 PlaceholderText="Zadejte uživatelské jméno"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Heslo"
+                                   FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                        <TextBox Text="{Binding Password}"
+                                 PasswordChar="•"
+                                 PlaceholderText="Zadejte heslo"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Chybová hláška -->
+                <Border Margin="0 12 0 0"
+                        Background="#25FF3355"
+                        BorderBrush="{DynamicResource BrushDanger}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="10 8"
+                        IsVisible="{Binding ErrorMessage,
+                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{DynamicResource BrushDanger}"
+                               FontSize="12"/>
+                </Border>
+
+                <!-- Tlačítko přihlásit -->
+                <Button Command="{Binding LoginCommand}"
+                        Margin="0 20 0 0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="0 12"
+                        FontSize="14" FontWeight="SemiBold">
+                    <Panel>
+                        <TextBlock Text="Přihlásit se"
+                                   IsVisible="{Binding !IsBusy}"/>
+                        <TextBlock Text="Přihlašování…"
+                                   IsVisible="{Binding IsBusy}"/>
+                    </Panel>
+                </Button>
+
+                <!-- Server URL řádek -->
+                <Border Margin="0 20 0 0"
+                        Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12 10">
+                    <StackPanel Spacing="4">
+
+                        <TextBlock Text="SERVER"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   Opacity="0.7"/>
+
+                        <!-- Zobrazení URL -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding !IsEditingServerUrl}">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding ServerUrl}"
+                                       FontSize="12" FontFamily="Consolas,monospace"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="1"
+                                    Classes="ghost"
+                                    Command="{Binding ToggleEditServerUrlCommand}"
+                                    Padding="6 4" Margin="6 0 0 0"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="Změnit server">
+                                <TextBlock Text="✎" FontSize="12"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- Editace URL -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding IsEditingServerUrl}">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding ServerUrl}"
+                                     FontSize="12" FontFamily="Consolas,monospace"
+                                     PlaceholderText="http://localhost:5000"
+                                     Padding="8 5"/>
+                            <Button Grid.Column="1"
+                                    Classes="ghost"
+                                    Command="{Binding ConfirmServerUrlCommand}"
+                                    Padding="6 4" Margin="6 0 0 0"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="Potvrdit">
+                                <TextBlock Text="✓" FontSize="13"
+                                           Foreground="{DynamicResource BrushSuccess}"/>
+                            </Button>
+                        </Grid>
+
+                    </StackPanel>
+                </Border>
+
+                <!-- Footer -->
+                <TextBlock Text="AssetMap v0.1 · self-hosted"
+                           FontSize="11"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           HorizontalAlignment="Center"
+                           Margin="0 16 0 0"
+                           Opacity="0.5"/>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

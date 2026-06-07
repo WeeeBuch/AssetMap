@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.Components.SectionHeader"
+             x:DataType="components:SectionHeader">
+
+    <StackPanel Spacing="2" Margin="0 0 0 14">
+
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Title}"
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrushTextPrimary}"
+                       VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1"
+                    Classes="ghost"
+                    Content="{Binding ActionText}"
+                    Command="{Binding ActionCommand}"
+                    Padding="8 4" FontSize="12"
+                    IsVisible="{Binding ActionText,
+                        Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </Grid>
+
+        <TextBlock Text="{Binding Subtitle}"
+                   FontSize="12"
+                   Foreground="{DynamicResource BrushTextSecondary}"
+                   IsVisible="{Binding Subtitle,
+                       Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+    </StackPanel>
+</UserControl>
