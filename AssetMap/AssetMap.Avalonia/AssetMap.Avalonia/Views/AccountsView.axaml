@@ -1,0 +1,275 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AssetMap.Avalonia.ViewModels"
+             xmlns:comp="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.AccountsView"
+             x:DataType="vm:AccountsViewModel">
+    <Design.DataContext>
+        <vm:AccountsViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Spacing="0">
+
+        <!-- ══════════════════════════════════
+             HORIZONTÁLNÍ PRUH KARET
+             ══════════════════════════════════ -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Disabled"
+                      Padding="0 0 0 4">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0 4">
+
+                <!-- Kartičky účtů -->
+                <ItemsControl ItemsSource="{Binding Accounts}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="12"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:AccountCardViewModel">
+                            <Button Padding="0" CornerRadius="10" Classes="ghost"
+                                    Command="{Binding SelectCommand}"
+                                    Width="210">
+                                <Panel Width="210" Height="140">
+
+                                    <!-- Základní karta -->
+                                    <Border CornerRadius="10"
+                                            Background="{DynamicResource BrushSurface}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"/>
+
+                                    <!-- Výběr ring (accent border) -->
+                                    <Border CornerRadius="10"
+                                            BorderBrush="{DynamicResource BrushAccent}"
+                                            BorderThickness="1.5"
+                                            IsVisible="{Binding IsSelected}"/>
+
+                                    <!-- Obsah -->
+                                    <StackPanel Margin="16 14" Spacing="0">
+
+                                        <!-- Hlavička: ikona + název -->
+                                        <StackPanel Orientation="Horizontal" Spacing="9" Margin="0 0 0 12">
+                                            <Border Width="30" Height="30" CornerRadius="8"
+                                                    Background="{Binding IconBrush}">
+                                                <TextBlock Text="{Binding IconLetter}"
+                                                           FontSize="14" FontWeight="Bold"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding AccountName}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Text="{Binding Institution}"
+                                                           FontSize="10"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Základní částka -->
+                                        <StackPanel Spacing="2">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <TextBlock Text="{Binding BaseAmount}"
+                                                           FontSize="18" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}"/>
+                                                <TextBlock Text="{Binding BaseCurrency}"
+                                                           FontSize="12" FontWeight="Medium"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           VerticalAlignment="Bottom"
+                                                           Margin="0 0 0 2"/>
+                                            </StackPanel>
+
+                                            <!-- Přepočet na vybranou měnu -->
+                                            <StackPanel Orientation="Horizontal" Spacing="4"
+                                                        IsVisible="{Binding ConvertedAmount,
+                                                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                <TextBlock Text="≈"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                <TextBlock Text="{Binding ConvertedAmount}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                                <TextBlock Text="{Binding ConvertedCurrency}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Změna (%) — dva TextBlocky kvůli compiled binding -->
+                                        <Panel Margin="0 8 0 0">
+                                            <TextBlock Text="{Binding ChangeText}"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushSuccess}"
+                                                       IsVisible="{Binding ChangePositive}"/>
+                                            <TextBlock Text="{Binding ChangeText}"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushDanger}"
+                                                       IsVisible="{Binding !ChangePositive}"/>
+                                        </Panel>
+
+                                    </StackPanel>
+                                </Panel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Přidat účet -->
+                <Button Classes="ghost" Padding="0"
+                        Command="{Binding AddAccountCommand}"
+                        Width="210" Height="140" CornerRadius="10">
+                    <Border Width="210" Height="140"
+                            CornerRadius="10"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="8">
+                            <TextBlock Text="+"
+                                       FontSize="30" FontWeight="Thin"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Přidat účet"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Button>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ══════════════════════════════════
+             DETAIL VYBRANÉHO ÚČTU
+             ══════════════════════════════════ -->
+        <StackPanel Spacing="16" Margin="0 20 0 0"
+                    IsVisible="{Binding HasSelectedAccount}">
+
+            <!-- Hlavička detailu -->
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="{Binding SelectedAccount.AccountName}"
+                               FontSize="17" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Text="{Binding SelectedAccount.Institution}"
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding SelectedAccount.BaseAmount}"
+                                   FontSize="20" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                        <TextBlock Text="{Binding SelectedAccount.BaseCurrency}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   VerticalAlignment="Bottom" Margin="0 0 0 2"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding SelectedAccount.ChangeText}"
+                               FontSize="12" FontWeight="Medium"
+                               HorizontalAlignment="Right"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Graf vývoje + tečky transakcí -->
+            <Border Classes="card" Padding="4 8 4 4">
+                <comp:SimpleLineChart Height="230"
+                                      BalanceHistory="{Binding SelectedAccount.BalanceHistory}"
+                                      DepositIndices="{Binding SelectedAccount.DepositIndices}"
+                                      WithdrawalIndices="{Binding SelectedAccount.WithdrawalIndices}"/>
+            </Border>
+
+            <!-- Legenda: tečky -->
+            <StackPanel Orientation="Horizontal" Spacing="20" Margin="8 0">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Width="10" Height="10" CornerRadius="5" Background="#00B3FF"/>
+                    <TextBlock Text="Zůstatek" FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Width="10" Height="10" CornerRadius="5" Background="#00E57A"/>
+                    <TextBlock Text="Vklad" FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Width="10" Height="10" CornerRadius="5" Background="#FF3355"/>
+                    <TextBlock Text="Výběr" FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Seznam transakcí -->
+            <Border Classes="card">
+                <StackPanel Spacing="0">
+
+                    <!-- Hlavička -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 12">
+                        <TextBlock Grid.Column="0"
+                                   Text="Transakce"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="Posledních 60 dní"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Border Classes="separator" Margin="0 0 0 4"/>
+
+                    <!-- Řádky transakcí -->
+                    <ItemsControl ItemsSource="{Binding SelectedAccount.Transactions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:TransactionDisplayItem">
+                                <Grid ColumnDefinitions="36,12,*,Auto"
+                                      Margin="0 7">
+
+                                    <!-- Ikona -->
+                                    <Border Grid.Column="0"
+                                            Width="36" Height="36" CornerRadius="9"
+                                            Background="{Binding IconBrush}">
+                                        <TextBlock Text="{Binding IconText}"
+                                                   FontSize="13" FontWeight="Bold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+
+                                    <!-- Popis + datum -->
+                                    <StackPanel Grid.Column="2"
+                                                Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="{Binding Date}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+
+                                    <!-- Částka -->
+                                    <Panel Grid.Column="3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Amount}"
+                                                   FontSize="13" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushSuccess}"
+                                                   IsVisible="{Binding IsCredit}"/>
+                                        <TextBlock Text="{Binding Amount}"
+                                                   FontSize="13" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushDanger}"
+                                                   IsVisible="{Binding !IsCredit}"/>
+                                    </Panel>
+
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </StackPanel>
+</UserControl>

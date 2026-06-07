@@ -34,6 +34,9 @@ public partial class MainViewModel : ViewModelBase
         _                    => "AssetMap"
     };
 
+    // Oddělený VM pro Accounts (má vlastní kolekci + selected state)
+    public AccountsViewModel AccountsVM { get; } = new();
+
     [RelayCommand] private void NavigateToDashboard()    => CurrentPage = AppPage.Dashboard;
     [RelayCommand] private void NavigateToAccounts()     => CurrentPage = AppPage.Accounts;
     [RelayCommand] private void NavigateToTransactions() => CurrentPage = AppPage.Transactions;

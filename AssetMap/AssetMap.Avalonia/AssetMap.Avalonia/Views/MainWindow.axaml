@@ -166,6 +166,11 @@
                 <Panel>
                     <views:MainView Margin="24"
                                     IsVisible="{Binding IsOnDashboard}"/>
+                    <!-- Panel drží IsVisible na MainViewModel, AccountsView dostane svůj VM -->
+                    <Panel IsVisible="{Binding IsOnAccounts}">
+                        <views:AccountsView Margin="24"
+                                            DataContext="{Binding AccountsVM}"/>
+                    </Panel>
                     <views:SettingsView Margin="24"
                                         IsVisible="{Binding IsOnSettings}"/>
                 </Panel>
