@@ -10,4 +10,8 @@
     <ProjectReference Include="..\AssetMap.Entities\AssetMap.Entities.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Comms\" />
+  </ItemGroup>
+
 </Project>
