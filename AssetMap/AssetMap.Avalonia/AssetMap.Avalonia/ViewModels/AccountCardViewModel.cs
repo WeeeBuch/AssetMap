@@ -34,6 +34,10 @@ public partial class AccountCardViewModel : ViewModelBase
     public string  ChangeText        { get; init; } = "";
     public bool    ChangePositive    { get; init; }
 
+    // Surové hodnoty pro výpočty (přehledové grafy)
+    public double RawBalance     { get; init; }
+    public double ConversionRate { get; init; } = 1.0;
+
     // Výběr — nastavuje AccountsViewModel
     [ObservableProperty] private bool _isSelected;
 
@@ -113,6 +117,8 @@ public partial class AccountCardViewModel : ViewModelBase
             ConvertedCurrency = convertedCurrency,
             ChangeText        = (pct >= 0 ? "▲ +" : "▼ ") + Math.Abs(pct).ToString("N1") + " %",
             ChangePositive    = pct >= 0,
+            RawBalance        = finalBalance,
+            ConversionRate    = conversionRate,
             BalanceHistory    = balanceHistory,
             DepositIndices    = [.. depositIndices],
             WithdrawalIndices = [.. withdrawIndices],

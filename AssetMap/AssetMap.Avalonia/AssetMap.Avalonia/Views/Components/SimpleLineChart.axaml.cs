@@ -1,16 +1,20 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using Avalonia;
-using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 using Avalonia.Media;
 
 namespace AssetMap.Avalonia.Views.Components;
 
+/// <summary>
+/// Line chart s osami, mřížkou a hover tooltipem.
+/// Čistý Avalonia Render — žádné závislosti, živé aktualizace.
+/// </summary>
 public partial class SimpleLineChart : UserControl
 {
-    // ── Avalonia properties (bindable) ────────────────────────
+    // ── Bindable properties ───────────────────────────────────
     public static readonly StyledProperty<double[]> BalanceHistoryProperty =
         AvaloniaProperty.Register<SimpleLineChart, double[]>(nameof(BalanceHistory), []);
 
@@ -38,10 +42,18 @@ public partial class SimpleLineChart : UserControl
         set => SetValue(WithdrawalIndicesProperty, value);
     }
 
+    // ── Layout ────────────────────────────────────────────────
+    private const double PadL = 62, PadR = 14, PadT = 12, PadB = 28;
+
+    // ── Hover stav ────────────────────────────────────────────
+    private int? _hoverIdx;
+
+    // Cached pro hover výpočty
+    private double _vMin, _vRange;
+
     public SimpleLineChart()
     {
         InitializeComponent();
-        SizeChanged += (_, _) => DrawChart();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -50,93 +62,208 @@ public partial class SimpleLineChart : UserControl
         if (change.Property == BalanceHistoryProperty    ||
             change.Property == DepositIndicesProperty    ||
             change.Property == WithdrawalIndicesProperty)
-        {
-            DrawChart();
-        }
+            InvalidateVisual();
     }
 
-    // ── Kreslení grafu ────────────────────────────────────────
-    private void DrawChart()
+    // ── Vstupní události ──────────────────────────────────────
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
-        double w = ChartCanvas.Bounds.Width;
-        double h = ChartCanvas.Bounds.Height;
+        base.OnPointerMoved(e);
+        var pts = BalanceHistory;
+        if (pts is null || pts.Length < 2) return;
+
+        double w     = Bounds.Width;
+        double h     = Bounds.Height;
+        double plotW = w - PadL - PadR;
+        double plotH = h - PadT - PadB;
+        if (plotW <= 0 || plotH <= 0) return;
+
+        var pos = e.GetPosition(this);
+
+        // Hover aktivní nad celou plochou grafu (ne jen nad čárou)
+        // Clampujeme X do plotové oblasti → tooltip vždy viditelný
+        double clampedX = Math.Clamp(pos.X, PadL, w - PadR);
+        double t   = (clampedX - PadL) / plotW;
+        int    idx = (int)Math.Clamp(Math.Round(t * (pts.Length - 1)), 0, pts.Length - 1);
+
+        if (_hoverIdx != idx) { _hoverIdx = idx; InvalidateVisual(); }
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (_hoverIdx.HasValue) { _hoverIdx = null; InvalidateVisual(); }
+    }
+
+    // ── Rendering ─────────────────────────────────────────────
+    public override void Render(DrawingContext ctx)
+    {
+        base.Render(ctx);
+
+        double w = Bounds.Width;
+        double h = Bounds.Height;
         if (w <= 0 || h <= 0) return;
 
         var pts = BalanceHistory;
-        if (pts == null || pts.Length < 2) return;
+        if (pts is null || pts.Length < 2) return;
 
-        ChartCanvas.Children.Clear();
+        double plotW = w - PadL - PadR;
+        double plotH = h - PadT - PadB;
+        if (plotW <= 0 || plotH <= 0) return;
 
-        const double padX = 8;
-        const double padY = 12;
-
+        // ── Hodnoty a mapování ────────────────────────────────
         double minV  = pts.Min();
         double maxV  = pts.Max();
         double range = maxV - minV;
         if (range < 1e-9) range = 1;
 
+        double vPad   = range * 0.08;
+        _vMin         = minV - vPad;
+        _vRange       = maxV + vPad - _vMin;
+        if (_vRange < 1e-9) _vRange = 1;
+
         int n = pts.Length;
 
-        Point Map(int i, double v)
+        double MapX(int i) => PadL + plotW * i / (n - 1);
+        double MapY(double v) => PadT + plotH * (1.0 - (v - _vMin) / _vRange);
+
+        // ── Barvy ─────────────────────────────────────────────
+        var labelBrush   = new SolidColorBrush(Color.Parse("#6A6A82"));
+        var gridPen      = new Pen(new SolidColorBrush(Color.Parse("#1C1C28")), 1);
+        var axisPen      = new Pen(new SolidColorBrush(Color.Parse("#2A2A38")), 1);
+        var linePen      = new Pen(new SolidColorBrush(Color.Parse("#00B3FF")), 2,
+                              lineCap: PenLineCap.Round);
+        var typeface     = Typeface.Default;
+        const double fs  = 10;
+
+        // ── Mřížka + popisky Y ────────────────────────────────
+        const int steps = 4;
+        for (int g = 0; g <= steps; g++)
         {
-            double x = padX + (w - 2 * padX) * i / (n - 1);
-            double y = h - padY - (h - 2 * padY) * (v - minV) / range;
-            return new Point(x, y);
+            double t = (double)g / steps;
+            double y = PadT + plotH * t;
+            double v = _vMin + _vRange * (1 - t);
+
+            ctx.DrawLine(g == 0 || g == steps ? axisPen : gridPen,
+                         new Point(PadL, y), new Point(w - PadR, y));
+
+            var ft = new FormattedText(
+                FormatValue(v), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                typeface, fs, labelBrush);
+            ctx.DrawText(ft, new Point(PadL - ft.Width - 5, y - ft.Height / 2));
         }
 
-        var mapped = Enumerable.Range(0, n).Select(i => Map(i, pts[i])).ToList();
-
-        // ── Gradient fill ─────────────────────────────────────
-        var fillPts = new AvaloniaList<Point>(mapped);
-        fillPts.Add(new Point(mapped[^1].X, h));
-        fillPts.Add(new Point(mapped[0].X, h));
-
-        ChartCanvas.Children.Add(new Polygon
+        // ── Popisky X (5 datumů) ──────────────────────────────
+        var baseDate   = DateTime.Now.Date.AddDays(-(n - 1));
+        const int xlbl = 5;
+        for (int i = 0; i < xlbl; i++)
         {
-            Points = fillPts,
-            Fill   = new LinearGradientBrush
+            int    idx  = i == xlbl - 1 ? n - 1 : (n - 1) * i / (xlbl - 1);
+            double x    = MapX(idx);
+            var    ft   = new FormattedText(
+                baseDate.AddDays(idx).ToString("d. M."),
+                CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                typeface, fs, labelBrush);
+            ctx.DrawText(ft, new Point(x - ft.Width / 2, h - PadB + 5));
+        }
+
+        // ── Gradient fill pod čárou ───────────────────────────
+        var fillGeo = new StreamGeometry();
+        using (var sgc = fillGeo.Open())
+        {
+            sgc.BeginFigure(new Point(MapX(0), MapY(pts[0])), true);
+            for (int i = 1; i < n; i++)
+                sgc.LineTo(new Point(MapX(i), MapY(pts[i])));
+            sgc.LineTo(new Point(MapX(n - 1), PadT + plotH));
+            sgc.LineTo(new Point(MapX(0),     PadT + plotH));
+            sgc.EndFigure(true);
+        }
+
+        var fillBrush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
+            EndPoint   = new RelativePoint(0.5, 1, RelativeUnit.Relative),
+            GradientStops = new GradientStops
             {
-                StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-                EndPoint   = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-                GradientStops = new GradientStops
-                {
-                    new GradientStop { Color = Color.Parse("#4400B3FF"), Offset = 0 },
-                    new GradientStop { Color = Color.Parse("#0000B3FF"), Offset = 1 },
-                }
+                new GradientStop { Color = Color.Parse("#3300B3FF"), Offset = 0 },
+                new GradientStop { Color = Color.Parse("#0000B3FF"), Offset = 1 },
             }
-        });
+        };
+        ctx.DrawGeometry(fillBrush, null, fillGeo);
 
-        // ── Čára ─────────────────────────────────────────────
-        ChartCanvas.Children.Add(new Polyline
+        // ── Čára ──────────────────────────────────────────────
+        var lineGeo = new StreamGeometry();
+        using (var sgc = lineGeo.Open())
         {
-            Points          = new AvaloniaList<Point>(mapped),
-            Stroke          = new SolidColorBrush(Color.Parse("#00B3FF")),
-            StrokeThickness = 2,
-            StrokeLineCap   = PenLineCap.Round,
-        });
+            sgc.BeginFigure(new Point(MapX(0), MapY(pts[0])), false);
+            for (int i = 1; i < n; i++)
+                sgc.LineTo(new Point(MapX(i), MapY(pts[i])));
+        }
+        ctx.DrawGeometry(null, linePen, lineGeo);
 
         // ── Tečky transakcí ───────────────────────────────────
-        AddDots(pts, n, DepositIndices,    Color.Parse("#00E57A"), Map);
-        AddDots(pts, n, WithdrawalIndices, Color.Parse("#FF3355"), Map);
+        DrawDots(ctx, pts, n, DepositIndices,    Color.Parse("#00E57A"), MapX, MapY);
+        DrawDots(ctx, pts, n, WithdrawalIndices, Color.Parse("#FF3355"), MapX, MapY);
+
+        // ── Hover ─────────────────────────────────────────────
+        if (_hoverIdx.HasValue && _hoverIdx.Value < n)
+        {
+            int    hi  = _hoverIdx.Value;
+            double hx  = MapX(hi);
+            double hy  = MapY(pts[hi]);
+
+            // Svislá přerušovaná čára
+            var hoverPen = new Pen(new SolidColorBrush(Color.Parse("#6A6A82")), 1,
+                               dashStyle: new DashStyle(new double[] { 4, 4 }, 0));
+            ctx.DrawLine(hoverPen, new Point(hx, PadT), new Point(hx, PadT + plotH));
+
+            // Tečka na čáře
+            ctx.DrawEllipse(new SolidColorBrush(Color.Parse("#00B3FF")),
+                            new Pen(new SolidColorBrush(Color.Parse("#141419")), 2),
+                            new Point(hx, hy), 5, 5);
+
+            // Tooltip
+            var date = baseDate.AddDays(hi);
+            string tip = $"{date:d. M. yyyy}   {FormatValue(pts[hi])}";
+            var tipFt  = new FormattedText(
+                tip, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                typeface, 11, new SolidColorBrush(Color.Parse("#EAEAF2")));
+
+            double tipW = tipFt.Width + 16;
+            double tipH = tipFt.Height + 10;
+            double tipX = hx + 10;
+            if (tipX + tipW > w - PadR) tipX = hx - tipW - 10;
+            double tipY = PadT + 4;
+
+            var tipRect = new Rect(tipX, tipY, tipW, tipH);
+            ctx.DrawRectangle(
+                new SolidColorBrush(Color.Parse("#1A1A22")),
+                new Pen(new SolidColorBrush(Color.Parse("#2A2A38")), 1),
+                tipRect, 4, 4);
+            ctx.DrawText(tipFt, new Point(tipX + 8, tipY + 5));
+        }
     }
 
-    private void AddDots(double[] pts, int n, int[] indices, Color fill,
-                         Func<int, double, Point> map)
+    // ── Helpers ───────────────────────────────────────────────
+    private static void DrawDots(DrawingContext ctx,
+        double[] pts, int n, int[] indices, Color fill,
+        Func<int, double> mapX, Func<double, double> mapY)
     {
         if (indices is null) return;
+        var fillBrush = new SolidColorBrush(fill);
         foreach (int idx in indices)
         {
             if (idx < 0 || idx >= n) continue;
-            var p   = map(idx, pts[idx]);
-            var dot = new Ellipse
-            {
-                Width  = 8,
-                Height = 8,
-                Fill   = new SolidColorBrush(fill),
-            };
-            Canvas.SetLeft(dot, p.X - 4);
-            Canvas.SetTop(dot,  p.Y - 4);
-            ChartCanvas.Children.Add(dot);
+            ctx.DrawEllipse(fillBrush, null,
+                            new Point(mapX(idx), mapY(pts[idx])), 5, 5);
         }
+    }
+
+    private static string FormatValue(double v)
+    {
+        if (Math.Abs(v) >= 1_000_000) return (v / 1_000_000).ToString("0.#") + "M";
+        if (Math.Abs(v) >= 10_000)    return (v / 1_000).ToString("0.#") + "k";
+        if (Math.Abs(v) >= 1_000)     return v.ToString("N0");
+        return v.ToString("0.##");
     }
 }

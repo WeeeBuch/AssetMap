@@ -8,15 +8,43 @@
         <vm:AccountsViewModel/>
     </Design.DataContext>
 
+    <UserControl.Styles>
+        <!-- Segmented toggle tlačítka -->
+        <Style Selector="Button.seg /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="12 5"/>
+        </Style>
+        <Style Selector="Button.seg">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="5"/>
+        </Style>
+        <Style Selector="Button.seg.on /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+        <Style Selector="Button.seg.on">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+    </UserControl.Styles>
+
     <StackPanel Spacing="0">
 
         <!-- ══════════════════════════════════
              HORIZONTÁLNÍ PRUH KARET
+             (drag-to-scroll přes code-behind)
              ══════════════════════════════════ -->
-        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="CardScroller"
+                      HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled"
                       Padding="0 0 0 4">
-            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0 4">
+            <StackPanel x:Name="CardStrip"
+                        Orientation="Horizontal" Spacing="12" Margin="0 4"
+                        Cursor="Hand"
+                        PointerPressed="CardStrip_PointerPressed"
+                        PointerMoved="CardStrip_PointerMoved"
+                        PointerReleased="CardStrip_PointerReleased"
+                        PointerCaptureLost="CardStrip_PointerCaptureLost">
 
                 <!-- Kartičky účtů -->
                 <ItemsControl ItemsSource="{Binding Accounts}">
@@ -84,8 +112,7 @@
                                             <StackPanel Orientation="Horizontal" Spacing="4"
                                                         IsVisible="{Binding ConvertedAmount,
                                                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                                <TextBlock Text="≈"
-                                                           FontSize="11"
+                                                <TextBlock Text="≈" FontSize="11"
                                                            Foreground="{DynamicResource BrushTextSecondary}"/>
                                                 <TextBlock Text="{Binding ConvertedAmount}"
                                                            FontSize="11"
@@ -141,6 +168,117 @@
 
             </StackPanel>
         </ScrollViewer>
+
+        <!-- ══════════════════════════════════
+             PŘEHLED (viditelný když nic není vybráno)
+             ══════════════════════════════════ -->
+        <Grid ColumnDefinitions="300,*" ColumnSpacing="16"
+              IsVisible="{Binding !HasSelectedAccount}"
+              Margin="0 20 0 0">
+
+            <!-- ── Koláčový graf ──────────────────────────────── -->
+            <Border Grid.Column="0" Classes="card">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Rozložení portfolia"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                    <comp:PieChart Height="180" Slices="{Binding PieSlices}"/>
+
+                    <!-- Legenda -->
+                    <ItemsControl ItemsSource="{Binding PieSlices}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:PieSliceData">
+                                <Grid ColumnDefinitions="12,8,*,Auto" Margin="0 4">
+                                    <Border Grid.Column="0"
+                                            Width="12" Height="12" CornerRadius="6"
+                                            Background="{Binding SliceBrush}"
+                                            VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Label}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3"
+                                               Text="{Binding Percent}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Vývoj portfolia ────────────────────────────── -->
+            <Border Grid.Column="1" Classes="card">
+                <StackPanel Spacing="14">
+
+                    <!-- Hlavička + toggle -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Vývoj portfolia"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                        <!-- Segmented toggle -->
+                        <Border Grid.Column="1"
+                                CornerRadius="7"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1"
+                                Padding="2">
+                            <StackPanel Orientation="Horizontal" Spacing="0">
+                                <Button Classes="seg"
+                                        Classes.on="{Binding IsOnTotalChart}"
+                                        Command="{Binding SwitchToTotalCommand}"
+                                        Content="Celkem"/>
+                                <Button Classes="seg"
+                                        Classes.on="{Binding IsOnAccountsChart}"
+                                        Command="{Binding SwitchToAllLinesCommand}"
+                                        Content="Účty"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Celkový line graf -->
+                    <comp:SimpleLineChart Height="200"
+                                          IsVisible="{Binding IsOnTotalChart}"
+                                          BalanceHistory="{Binding TotalHistory}"/>
+
+                    <!-- Multi-line graf (% změna od začátku) -->
+                    <comp:MultiLineChart Height="200"
+                                         IsVisible="{Binding IsOnAccountsChart}"
+                                         Lines="{Binding AccountLines}"
+                                         YSuffix=" %"/>
+
+                    <!-- Legenda účtů (společná pro oba grafy) -->
+                    <ItemsControl ItemsSource="{Binding AccountLines}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="16"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:ChartLine">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Border Width="10" Height="10" CornerRadius="5"
+                                            Background="{Binding LineBrush}"
+                                            VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Label}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </Border>
+
+        </Grid>
 
         <!-- ══════════════════════════════════
              DETAIL VYBRANÉHO ÚČTU
@@ -250,7 +388,7 @@
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                                     </StackPanel>
 
-                                    <!-- Částka -->
+                                    <!-- Částka — dva TextBlocky (compiled binding) -->
                                     <Panel Grid.Column="3" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Amount}"
                                                    FontSize="13" FontWeight="Medium"
