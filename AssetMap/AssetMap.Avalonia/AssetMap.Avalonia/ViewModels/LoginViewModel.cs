@@ -43,13 +43,9 @@ public partial class LoginViewModel : ViewModelBase
         ErrorMessage = null;
         try
         {
-            // TODO: volání API
-            await Task.Delay(300);
+            (bool res, ErrorMessage) = Repos.Auth.Login.TryLogin(Username, Password);
 
-            if (Username == "demo" && Password == "demo")
-                LoginSucceeded?.Invoke();
-            else
-                ErrorMessage = "Neplatné přihlašovací údaje.";
+            if (res) LoginSucceeded?.Invoke();
         }
         finally
         {

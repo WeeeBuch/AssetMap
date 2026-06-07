@@ -8,22 +8,21 @@ namespace AssetMap.Repos.Auth
     {
         public static (bool, string) TryLogin(string username, string password)
         {
-            bool loged = false;
-            string statusCode = "";
-
 #if DEBUG
             if (username == "demo" && password == "demo")
-            {
-                loged = true;
-                statusCode = "OK";
-            }
+                return (true, "Succefuly logged in");
 #endif
 
+            if (username.IsWhiteSpace())
+                return (false, "Username is empty");
+
+            if (password.IsWhiteSpace()) 
+                return (false, "Password is empty");
+
+            // TODO: call API a přepsat result na true, zatim je false aby se jen tak nepřihlašovalo
 
 
-
-
-            return (loged, statusCode);
+            return (false, "Nah Bro");
         }
     }
 }
