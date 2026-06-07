@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using AssetMap.Entities.Enums;
+using AssetMap.Repos.Accounts;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -54,7 +56,91 @@ public partial class AccountCardViewModel : ViewModelBase
     // Transakce (seznam pod grafem)
     public ObservableCollection<TransactionDisplayItem> Transactions { get; init; } = [];
 
-    // ── Mock data factory ─────────────────────────────────────
+    // ── Real data factory ─────────────────────────────────────
+    public static AccountCardViewModel FromData(AccountData data, double conversionRate = 1.0)
+    {
+        var acc      = data.Account;
+        var history  = data.BalanceHistory;
+        var iconBrush = IconBrushFor(acc.AccountType, acc.Name);
+
+        // Deposit / withdrawal indices z dat transakcí
+        var baseDate = DateTime.Today.AddDays(-(history.Length - 1));
+        var deposits    = new List<int>();
+        var withdrawals = new List<int>();
+
+        foreach (var tx in data.RecentTransactions)
+        {
+            int idx = (int)(tx.Date.Date - baseDate).TotalDays;
+            if (idx < 0 || idx >= history.Length) continue;
+            if (tx.Type == TransactionType.Deposit)    deposits.Add(idx);
+            else if (tx.Type == TransactionType.Withdrawal) withdrawals.Add(idx);
+        }
+
+        // Zobrazovací seznam transakcí
+        var creditBrush = new SolidColorBrush(Color.Parse("#00E57A"));
+        var debitBrush  = new SolidColorBrush(Color.Parse("#FF3355"));
+
+        var txItems = data.RecentTransactions
+            .Select(tx =>
+            {
+                bool isCredit = tx.Type == TransactionType.Deposit;
+                return new TransactionDisplayItem(
+                    isCredit ? "↓" : "↑",
+                    isCredit ? creditBrush : debitBrush,
+                    isCredit ? "Příchozí platba" : "Odchozí platba",
+                    tx.Date.ToString("dd. MM. yyyy"),
+                    (isCredit ? "+" : "−") + ((double)tx.Quantity).ToString("N2") + " " + data.BaseCurrency,
+                    isCredit
+                );
+            })
+            .ToList();
+
+        double finalBalance = history.Length > 0 ? history[^1] : data.CurrentBalance;
+        double firstBalance = history.Length > 0 ? history[0]  : finalBalance;
+        double pct = firstBalance > 0 ? (finalBalance - firstBalance) / firstBalance * 100 : 0;
+
+        return new AccountCardViewModel
+        {
+            AccountName       = acc.Name,
+            Institution       = acc.Institution ?? "",
+            IconLetter        = acc.Name.Length > 0 ? acc.Name[0].ToString().ToUpper() : "?",
+            IconBrush         = iconBrush,
+            BaseAmount        = finalBalance.ToString("N2"),
+            BaseCurrency      = data.BaseCurrency,
+            ConvertedAmount   = data.ConvertedBalance.HasValue
+                                    ? data.ConvertedBalance.Value.ToString("N2") : null,
+            ConvertedCurrency = data.ConvertedCurrency,
+            ChangeText        = (pct >= 0 ? "▲ +" : "▼ ") + Math.Abs(pct).ToString("N1") + " %",
+            ChangePositive    = pct >= 0,
+            RawBalance        = finalBalance,
+            ConversionRate    = conversionRate,
+            BalanceHistory    = history,
+            DepositIndices    = [.. deposits],
+            WithdrawalIndices = [.. withdrawals],
+            Transactions      = new ObservableCollection<TransactionDisplayItem>(txItems),
+        };
+    }
+
+    /// <summary>Deterministická barva ikony podle typu/jména.</summary>
+    private static IBrush IconBrushFor(AccountType type, string name) => type switch
+    {
+        AccountType.CryptoWallet => new SolidColorBrush(Color.Parse("#F7931A")), // BTC oranžová
+        AccountType.Brokerage    => new SolidColorBrush(Color.Parse("#6C5CE7")), // fialová
+        _ => PaletteFor(name)
+    };
+
+    private static readonly string[] _palette =
+    [
+        "#00B3FF", "#00E57A", "#845EF7", "#FF922B",
+        "#F03E3E", "#12B886", "#4263EB", "#F59F00"
+    ];
+    private static IBrush PaletteFor(string name)
+    {
+        int idx = Math.Abs(name.GetHashCode()) % _palette.Length;
+        return new SolidColorBrush(Color.Parse(_palette[idx]));
+    }
+
+    // ── Mock data factory (dočasně pro dev/test) ──────────────
     public static AccountCardViewModel CreateMock(
         string name, string institution, string iconLetter, string iconColorHex,
         double startBalance, string baseCurrency,

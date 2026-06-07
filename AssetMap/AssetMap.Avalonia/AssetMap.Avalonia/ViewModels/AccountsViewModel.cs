@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
+using AssetMap.Repos.Accounts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -38,7 +40,15 @@ public partial class AccountsViewModel : ViewModelBase
     // ── Init ──────────────────────────────────────────────────
     public AccountsViewModel()
     {
-        LoadMockAccounts();
+        LoadAccounts(AccountRepo.EnsureLoaded());
+    }
+
+    // ── Refresh z API ─────────────────────────────────────────
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        await AccountRepo.RefreshAsync();
+        LoadAccounts(AccountRepo.GetAll());
     }
 
     // ── Výběr kartičky ────────────────────────────────────────
@@ -66,32 +76,17 @@ public partial class AccountsViewModel : ViewModelBase
         // TODO: otevřít dialog pro přidání účtu
     }
 
-    // ── Mock data ─────────────────────────────────────────────
-    private void LoadMockAccounts()
+    // ── Načtení dat z repo ────────────────────────────────────
+    private void LoadAccounts(System.Collections.Generic.IReadOnlyList<AccountData> data)
     {
-        var accounts = new[]
+        Accounts.Clear();
+        SelectedAccount = null;
+
+        foreach (var d in data)
         {
-            AccountCardViewModel.CreateMock(
-                "Běžný účet", "Česká spořitelna", "Č", "#0044EE",
-                42_500, "Kč", "EUR", 0.040, seed: 1),
-
-            AccountCardViewModel.CreateMock(
-                "Spořicí účet", "Raiffeisenbank", "R", "#FF6B00",
-                185_000, "Kč", "EUR", 0.040, seed: 2),
-
-            AccountCardViewModel.CreateMock(
-                "Revolut", "Revolut", "V", "#C44DFF",
-                2_400, "EUR", "USD", 1.085, seed: 3),
-
-            AccountCardViewModel.CreateMock(
-                "Bitstamp", "Bitcoin", "₿", "#F7931A",
-                0.85, "BTC", "USD", 82_000, seed: 4),
-        };
-
-        foreach (var acc in accounts)
-        {
-            acc.OnSelect = a => SelectAccount(a);
-            Accounts.Add(acc);
+            var vm = AccountCardViewModel.FromData(d);
+            vm.OnSelect = a => SelectAccount(a);
+            Accounts.Add(vm);
         }
 
         ComputeOverview();
