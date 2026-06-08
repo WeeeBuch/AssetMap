@@ -24,13 +24,16 @@ public class AccountFullDto
 
 public class TransactionDto
 {
-    public Guid            Id           { get; set; }
-    public DateTime        Date         { get; set; }
-    public TransactionType Type         { get; set; }
-    public string          AssetSymbol  { get; set; } = "";
-    public decimal         Quantity     { get; set; }
-    public decimal         PricePerUnit { get; set; }
-    public string?         Note         { get; set; }
+    public Guid            Id            { get; set; }
+    public DateTime        Date          { get; set; }
+    public TransactionType Type          { get; set; }
+    public string          AssetSymbol   { get; set; } = "";
+    public decimal         Quantity      { get; set; }
+    public decimal         PricePerUnit  { get; set; }
+    public string?         Note          { get; set; }
+    public Guid?           FromAccountId { get; set; }
+    public Guid?           ToAccountId   { get; set; }
+    public decimal?        Fee           { get; set; }
 }
 
 // ── Requests ─────────────────────────────────────────────────────

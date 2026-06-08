@@ -899,6 +899,179 @@
                 </Panel>
             </Panel>
 
+            <!-- ══════════════════════════════════════
+                 MODAL — DETAIL TRANSAKCE
+                 ══════════════════════════════════════ -->
+            <Panel Grid.Row="0" Grid.RowSpan="2"
+                   IsVisible="{Binding AccountsVM.IsTxDetailOpen}">
+                <Panel DataContext="{Binding AccountsVM}"
+                       x:DataType="vm:AccountsViewModel">
+                    <!-- Backdrop -->
+                    <Border Background="#B2000000"/>
+
+                    <!-- Dialog card -->
+                    <Border Width="480"
+                            CornerRadius="14"
+                            Background="{DynamicResource BrushSurface}"
+                            BoxShadow="0 8 48 0 #66000000"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Padding="0">
+                        <Grid RowDefinitions="Auto,*,Auto">
+
+                            <!-- HEADER: ikona + typ + účet + ✕ -->
+                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto"
+                                  Margin="22 18 16 14">
+                                <!-- Ikona kruhu -->
+                                <Border Grid.Column="0"
+                                        Width="42" Height="42" CornerRadius="21"
+                                        Background="{DynamicResource BrushSurfaceHover}"
+                                        Margin="0 0 14 0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SelectedTxDetail.IconText}"
+                                               FontSize="18" FontWeight="Bold"
+                                               Foreground="{Binding SelectedTxDetail.IconBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <!-- Typ + datum -->
+                                <StackPanel Grid.Column="1" Spacing="2"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TxDetailTypeLabel}"
+                                               FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource BrushText}"/>
+                                    <TextBlock Text="{Binding TxDetailDate}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                                <!-- Zavřít -->
+                                <Button Grid.Column="2"
+                                        Classes="ghost"
+                                        Command="{Binding CloseTxDetailCommand}"
+                                        Width="32" Height="32" Padding="0"
+                                        CornerRadius="8"
+                                        VerticalAlignment="Top">
+                                    <TextBlock Text="✕" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+                            <!-- Separator -->
+                            <Border Grid.Row="0" Grid.RowSpan="2"
+                                    Height="1"
+                                    Background="{DynamicResource BrushBorder}"
+                                    VerticalAlignment="Bottom"
+                                    Margin="0 0 0 0"/>
+
+                            <!-- CONTENT: detail fields -->
+                            <ScrollViewer Grid.Row="1" Padding="22 16">
+                                <StackPanel Spacing="0">
+
+                                    <!-- Částka (velká) -->
+                                    <TextBlock Text="{Binding SelectedTxDetail.Amount}"
+                                               FontSize="28" FontWeight="Bold"
+                                               Foreground="{Binding SelectedTxDetail.IconBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0 0 0 20"/>
+
+                                    <!-- Grid s poli -->
+                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                                          >
+                                        <!-- Řádek 1: Účet / Typ -->
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0 0 12 14">
+                                            <TextBlock Text="Účet"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailAccountName}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="12 0 0 14">
+                                            <TextBlock Text="Typ"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailTypeLabel}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"/>
+                                        </StackPanel>
+
+                                        <!-- Řádek 2: Z účtu / Na účet (jen pro převody) -->
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0 0 12 14"
+                                                    IsVisible="{Binding SelectedTxDetail.IsTransfer}">
+                                            <TextBlock Text="Z účtu"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailFromAccountName}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="12 0 0 14"
+                                                    IsVisible="{Binding SelectedTxDetail.IsTransfer}">
+                                            <TextBlock Text="Na účet"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailToAccountName}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+
+                                        <!-- Řádek 3: Poplatek / Popis -->
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="2" Margin="0 0 12 14">
+                                            <TextBlock Text="Poplatek"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailFee}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="2" Grid.Column="1" Spacing="2" Margin="12 0 0 14">
+                                            <TextBlock Text="Popis"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding SelectedTxDetail.Description}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+
+                                        <!-- Řádek 4: Poznámka -->
+                                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                    Spacing="2" Margin="0 0 0 4">
+                                            <TextBlock Text="Poznámka"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailNote}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- FOOTER -->
+                            <Border Grid.Row="2"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="0 1 0 0"
+                                    Padding="20 12">
+                                <Button Classes="secondary"
+                                        Command="{Binding CloseTxDetailCommand}"
+                                        HorizontalAlignment="Right"
+                                        Content="Zavřít"
+                                        Padding="20 8"/>
+                            </Border>
+
+                        </Grid>
+                    </Border>
+                </Panel>
+            </Panel>
+
         </Grid>
 
         <!-- ══════════════════════════════════════════

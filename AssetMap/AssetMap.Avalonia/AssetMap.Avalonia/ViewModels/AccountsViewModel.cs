@@ -110,6 +110,55 @@ public partial class AccountsViewModel : ViewModelBase
             await AccountRepo.RefreshAsync();   // reload so Description updates
     }
 
+    // ── Detail transakce — MODAL ─────────────────────────────────
+
+    /// <summary>Otevření detailu transakce z jiných VM (TransactionsVM).</summary>
+    internal static Action<TransactionDisplayItem>? OpenTxDetailRequest;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TxDetailFromAccountName))]
+    [NotifyPropertyChangedFor(nameof(TxDetailToAccountName))]
+    [NotifyPropertyChangedFor(nameof(TxDetailFee))]
+    [NotifyPropertyChangedFor(nameof(TxDetailNote))]
+    [NotifyPropertyChangedFor(nameof(TxDetailDate))]
+    [NotifyPropertyChangedFor(nameof(TxDetailAccountName))]
+    [NotifyPropertyChangedFor(nameof(TxDetailTypeLabel))]
+    private TransactionDisplayItem? _selectedTxDetail;
+
+    [ObservableProperty] private bool _isTxDetailOpen = false;
+
+    public string TxDetailFromAccountName =>
+        SelectedTxDetail?.FromAccountId is Guid fid
+        ? Accounts.FirstOrDefault(a => a.AccountId == fid)?.AccountName ?? "?"
+        : "–";
+
+    public string TxDetailToAccountName =>
+        SelectedTxDetail?.ToAccountId is Guid tid
+        ? Accounts.FirstOrDefault(a => a.AccountId == tid)?.AccountName ?? "?"
+        : "–";
+
+    public string TxDetailAccountName => SelectedTxDetail?.AccountName ?? "–";
+    public string TxDetailNote        => string.IsNullOrWhiteSpace(SelectedTxDetail?.Note) ? "–" : SelectedTxDetail.Note;
+    public string TxDetailDate        => SelectedTxDetail?.RawDateTime.ToString("d. MMMM yyyy") ?? "–";
+    public string TxDetailFee         =>
+        SelectedTxDetail?.Fee is decimal fee && fee > 0
+        ? fee.ToString("N2") + " " + (SelectedTxDetail.AssetSymbol ?? "")
+        : "–";
+    public string TxDetailTypeLabel =>
+        SelectedTxDetail is { } d
+            ? d.IsTransfer ? "Převod" : (d.IsCredit ? "Příjem" : "Výdaj")
+            : "–";
+
+    [RelayCommand]
+    private void OpenTxDetail(TransactionDisplayItem tx)
+    {
+        SelectedTxDetail = tx;
+        IsTxDetailOpen   = true;
+    }
+
+    [RelayCommand]
+    private void CloseTxDetail() => IsTxDetailOpen = false;
+
     // ── Nová manuální transakce — DIALOG ─────────────────────────
 
     /// <summary>Otevření dialogu přidat transakci z jiných VM (TransactionsVM).</summary>

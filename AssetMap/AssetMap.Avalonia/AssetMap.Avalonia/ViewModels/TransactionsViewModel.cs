@@ -25,8 +25,15 @@ public record TxRowItem(
     bool     IsCredit
 )
 {
-    public string AccountLetter =>
-        AccountName.Length > 0 ? AccountName[0].ToString().ToUpper() : "?";
+    public string  AccountLetter => AccountName.Length > 0 ? AccountName[0].ToString().ToUpper() : "?";
+    // Detail data — populated during Reload()
+    public Guid?    TransactionId { get; init; }
+    public string?  Note          { get; init; }
+    public decimal? Fee           { get; init; }
+    public string   AssetSymbol   { get; init; } = "";
+    public Guid?    FromAccountId { get; init; }
+    public Guid?    ToAccountId   { get; init; }
+    public bool     IsTransfer    { get; init; }
 }
 
 // ── ViewModel pro stránku Transakcí ──────────────────────────
@@ -111,26 +118,57 @@ public partial class TransactionsViewModel : ViewModelBase
                 double convRate = d.ConvertedBalance.HasValue && d.CurrentBalance > 0
                     ? d.ConvertedBalance.Value / d.CurrentBalance
                     : 1.0;
+                var transferBrush = new SolidColorBrush(Color.Parse("#8B5CF6"));
                 return d.RecentTransactions.Select(tx =>
                 {
-                    bool   isCredit  = tx.Type == TransactionType.Deposit;
-                    double qty       = (double)tx.Quantity;
-                    double converted = qty * convRate;
-                    string amtStr    = (isCredit ? "+" : "−")
-                                       + qty.ToString("N2", CultureInfo.CurrentCulture)
-                                       + " " + d.BaseCurrency;
+                    bool   isTransfer = tx.ToAccountId.HasValue || tx.FromAccountId.HasValue;
+                    bool   isCredit   = tx.Type == TransactionType.Deposit;
+                    double qty        = (double)tx.Quantity;
+                    double converted  = qty * convRate;
+                    string amtStr     = (isCredit ? "+" : "−")
+                                        + qty.ToString("N2", CultureInfo.CurrentCulture)
+                                        + " " + d.BaseCurrency;
+
+                    IBrush iconBrush;
+                    string iconText;
+                    string desc;
+
+                    if (isTransfer)
+                    {
+                        iconBrush = transferBrush;
+                        iconText  = "⇄";
+                        desc      = tx.ToAccountId.HasValue ? "Převod →" : "Převod ←";
+                    }
+                    else
+                    {
+                        iconBrush = isCredit ? creditBrush : (IBrush)debitBrush;
+                        iconText  = isCredit ? "↓" : "↑";
+                        desc      = isCredit ? "Příchozí platba" : "Odchozí platba";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(tx.Note))
+                        desc = tx.Note;
 
                     var item = new TxRowItem(
-                        IconText:     isCredit ? "↓" : "↑",
-                        IconBrush:    isCredit ? creditBrush : (IBrush)debitBrush,
+                        IconText:     iconText,
+                        IconBrush:    iconBrush,
                         AccountName:  d.Account.Name,
                         AccountBrush: acctBrush,
-                        Description:  isCredit ? "Příchozí platba" : "Odchozí platba",
+                        Description:  desc,
                         Date:         tx.Date.ToString("dd. MM. yyyy"),
                         RawDate:      tx.Date,
                         Amount:       amtStr,
                         IsCredit:     isCredit
-                    );
+                    )
+                    {
+                        TransactionId = tx.Id,
+                        Note          = tx.Note,
+                        Fee           = tx.Fee,
+                        AssetSymbol   = d.BaseCurrency,
+                        FromAccountId = tx.FromAccountId,
+                        ToAccountId   = tx.ToAccountId,
+                        IsTransfer    = isTransfer,
+                    };
 
                     return new RawRow(item, d.Account.Name, isCredit, tx.Date, qty, converted);
                 });
@@ -139,6 +177,28 @@ public partial class TransactionsViewModel : ViewModelBase
             .ToList();
 
         ApplyFilter();
+    }
+
+    // ── Detail transakce (otevírá modal v AccountsVM) ────────────────────
+    [RelayCommand]
+    private void OpenTxDetail(TxRowItem row)
+    {
+        // Rebuild as TransactionDisplayItem so AccountsVM modal can display it
+        var detail = new TransactionDisplayItem(
+            row.IconText, row.IconBrush, row.Description,
+            row.Date, row.Amount, row.IsCredit)
+        {
+            TransactionId = row.TransactionId ?? Guid.Empty,
+            Note          = row.Note,
+            Fee           = row.Fee,
+            AssetSymbol   = row.AssetSymbol,
+            AccountName   = row.AccountName,
+            FromAccountId = row.FromAccountId,
+            ToAccountId   = row.ToAccountId,
+            IsTransfer    = row.IsTransfer,
+            RawDateTime   = row.RawDate,
+        };
+        AccountsViewModel.OpenTxDetailRequest?.Invoke(detail);
     }
 
     // ── Přidat transakci — dialog ────────────────────────────

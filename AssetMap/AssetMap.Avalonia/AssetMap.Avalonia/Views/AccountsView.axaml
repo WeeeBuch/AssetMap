@@ -490,7 +490,7 @@
                                 <StackPanel Margin="0 4">
 
                                     <!-- Normální řádek -->
-                                    <Grid ColumnDefinitions="36,12,*,Auto,8,Auto"
+                                    <Grid ColumnDefinitions="36,12,*,Auto,8,Auto,4,Auto"
                                           Margin="0 3">
 
                                         <!-- Ikona -->
@@ -528,8 +528,22 @@
                                                        IsVisible="{Binding !IsCredit}"/>
                                         </Panel>
 
-                                        <!-- Edit tlačítko -->
+                                        <!-- Detail tlačítko -->
                                         <Button Grid.Column="5"
+                                                Classes="ghost"
+                                                Command="{Binding $parent[ItemsControl].((vm:AccountsViewModel)DataContext).OpenTxDetailCommand}"
+                                                CommandParameter="{Binding}"
+                                                Width="26" Height="26" Padding="0" CornerRadius="6"
+                                                VerticalAlignment="Center"
+                                                ToolTip.Tip="Detail transakce">
+                                            <TextBlock Text="ℹ" FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Button>
+
+                                        <!-- Edit tlačítko -->
+                                        <Button Grid.Column="7"
                                                 Classes="ghost"
                                                 Command="{Binding $parent[ItemsControl].((vm:AccountsViewModel)DataContext).StartEditTransactionCommand}"
                                                 CommandParameter="{Binding}"

@@ -595,15 +595,18 @@ public static class AccountRepo
             };
             return new Transaction
             {
-                Id           = t.Id,
-                AccountId    = dto.Id,
-                Date         = t.Date,
-                Type         = t.Type,
-                AssetId      = assetId,
-                Asset        = asset,
-                Quantity     = (decimal)t.Quantity,
-                PricePerUnit = (decimal)t.PricePerUnit,
-                Note         = t.Note,
+                Id            = t.Id,
+                AccountId     = dto.Id,
+                Date          = t.Date,
+                Type          = t.Type,
+                AssetId       = assetId,
+                Asset         = asset,
+                Quantity      = (decimal)t.Quantity,
+                PricePerUnit  = (decimal)t.PricePerUnit,
+                Note          = t.Note,
+                FromAccountId = t.FromAccountId,
+                ToAccountId   = t.ToAccountId,
+                Fee           = t.Fee.HasValue ? (decimal)t.Fee.Value : null,
             };
         }).ToList();
 
@@ -680,13 +683,16 @@ public static class AccountRepo
 
     private class TransactionDto
     {
-        public Guid            Id           { get; set; }
-        public DateTime        Date         { get; set; }
-        public TransactionType Type         { get; set; }
-        public string          AssetSymbol  { get; set; } = "";
-        public double          Quantity     { get; set; }
-        public double          PricePerUnit { get; set; }
-        public string?         Note         { get; set; }
+        public Guid            Id            { get; set; }
+        public DateTime        Date          { get; set; }
+        public TransactionType Type          { get; set; }
+        public string          AssetSymbol   { get; set; } = "";
+        public double          Quantity      { get; set; }
+        public double          PricePerUnit  { get; set; }
+        public string?         Note          { get; set; }
+        public Guid?           FromAccountId { get; set; }
+        public Guid?           ToAccountId   { get; set; }
+        public double?         Fee           { get; set; }
     }
 
     /// <summary>Zrcadlí tělo POST /api/accounts pro uložení do fronty.</summary>

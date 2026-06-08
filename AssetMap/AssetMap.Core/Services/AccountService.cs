@@ -138,13 +138,16 @@ public class AccountService(
 
         var txDtos = acc.Transactions.Select(t => new TransactionDto
         {
-            Id           = t.Id,
-            Date         = t.Date,
-            Type         = t.Type,
-            AssetSymbol  = t.Asset?.Symbol ?? symbol,
-            Quantity     = t.Quantity,
-            PricePerUnit = t.PricePerUnit,
-            Note         = t.Note,
+            Id            = t.Id,
+            Date          = t.Date,
+            Type          = t.Type,
+            AssetSymbol   = t.Asset?.Symbol ?? symbol,
+            Quantity      = t.Quantity,
+            PricePerUnit  = t.PricePerUnit,
+            Note          = t.Note,
+            FromAccountId = t.FromAccountId,
+            ToAccountId   = t.ToAccountId,
+            Fee           = t.Fee,
         }).ToList();
 
         return new AccountFullDto

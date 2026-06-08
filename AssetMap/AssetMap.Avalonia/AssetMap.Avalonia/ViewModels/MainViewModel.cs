@@ -136,6 +136,10 @@ public partial class MainViewModel : ViewModelBase
         AccountsViewModel.OpenTxDialogRequest = () =>
             Dispatcher.UIThread.Post(() => AccountsVM.OpenNewTxDialogCommand.Execute(null));
 
+        // Propoj detail transakce z TransactionsVM s AccountsVM modálním oknem
+        AccountsViewModel.OpenTxDetailRequest = tx =>
+            Dispatcher.UIThread.Post(() => AccountsVM.OpenTxDetailCommand.Execute(tx));
+
         AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
 
         // ── Offline / online stav ─────────────────────────────

@@ -116,7 +116,7 @@
                 <ItemsControl ItemsSource="{Binding Filtered}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:TxRowItem">
-                            <Grid ColumnDefinitions="48,12,48,12,*,Auto"
+                            <Grid ColumnDefinitions="48,12,48,12,*,Auto,6,Auto"
                                   Margin="16 9 16 9">
 
                                 <!-- Ikona typu (příchozí/odchozí) -->
@@ -173,6 +173,20 @@
                                                Foreground="{DynamicResource BrushDanger}"
                                                IsVisible="{Binding !IsCredit}"/>
                                 </Panel>
+
+                                <!-- Detail tlačítko -->
+                                <Button Grid.Column="7"
+                                        Classes="ghost"
+                                        Command="{Binding $parent[ItemsControl].((vm:TransactionsViewModel)DataContext).OpenTxDetailCommand}"
+                                        CommandParameter="{Binding}"
+                                        Width="28" Height="28" Padding="0" CornerRadius="6"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="Detail transakce">
+                                    <TextBlock Text="ℹ" FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Button>
 
                             </Grid>
                         </DataTemplate>

@@ -20,8 +20,15 @@ public record TransactionDisplayItem(
     bool   IsCredit          // true = zelená, false = červená
 )
 {
-    public Guid    TransactionId { get; init; }
-    public string? Note          { get; init; }
+    public Guid     TransactionId { get; init; }
+    public string?  Note          { get; init; }
+    public Guid?    FromAccountId { get; init; }
+    public Guid?    ToAccountId   { get; init; }
+    public decimal? Fee           { get; init; }
+    public string   AssetSymbol   { get; init; } = "";
+    public string   AccountName   { get; init; } = "";
+    public bool     IsTransfer    { get; init; }
+    public DateTime RawDateTime   { get; init; }
 };
 
 // ── Karta účtu ────────────────────────────────────────────────
@@ -99,22 +106,51 @@ public partial class AccountCardViewModel : ViewModelBase
         var creditBrush = new SolidColorBrush(Color.Parse("#00E57A"));
         var debitBrush  = new SolidColorBrush(Color.Parse("#FF3355"));
 
+        var transferBrush = new SolidColorBrush(Color.Parse("#8B5CF6"));
+
         var txItems = data.RecentTransactions
             .Select(tx =>
             {
-                bool isCredit = tx.Type == TransactionType.Deposit;
-                string desc = !string.IsNullOrWhiteSpace(tx.Note)
-                    ? tx.Note
-                    : (isCredit ? "Příchozí platba" : "Odchozí platba");
+                bool isTransfer = tx.ToAccountId.HasValue || tx.FromAccountId.HasValue;
+                bool isCredit   = tx.Type == TransactionType.Deposit;
+
+                IBrush brush;
+                string icon;
+                string desc;
+
+                if (isTransfer)
+                {
+                    brush = transferBrush;
+                    icon  = "⇄";
+                    desc  = tx.ToAccountId.HasValue ? "Převod →" : "Převod ←";
+                }
+                else
+                {
+                    brush = isCredit ? creditBrush : debitBrush;
+                    icon  = isCredit ? "↓" : "↑";
+                    desc  = isCredit ? "Příchozí platba" : "Odchozí platba";
+                }
+
+                if (!string.IsNullOrWhiteSpace(tx.Note))
+                    desc = tx.Note;
 
                 return new TransactionDisplayItem(
-                    isCredit ? "↓" : "↑",
-                    isCredit ? creditBrush : debitBrush,
-                    desc,
+                    icon, brush, desc,
                     tx.Date.ToString("dd. MM. yyyy"),
                     (isCredit ? "+" : "−") + ((double)tx.Quantity).ToString("N2") + " " + data.BaseCurrency,
                     isCredit
-                ) { TransactionId = tx.Id, Note = tx.Note };
+                )
+                {
+                    TransactionId = tx.Id,
+                    Note          = tx.Note,
+                    FromAccountId = tx.FromAccountId,
+                    ToAccountId   = tx.ToAccountId,
+                    Fee           = tx.Fee,
+                    AssetSymbol   = data.BaseCurrency,
+                    AccountName   = data.Account.Name,
+                    IsTransfer    = isTransfer,
+                    RawDateTime   = tx.Date,
+                };
             })
             .ToList();
 
