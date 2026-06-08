@@ -1,4 +1,11 @@
+using System.Collections.Generic;
+using System.Linq;
 using AssetMap.Avalonia.Services;
+using AssetMap.Entities.Enums;
+using AssetMap.Repos;
+using AssetMap.Repos.Accounts;
+using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -33,6 +40,150 @@ public partial class MainViewModel : ViewModelBase
         AppPage.Settings     => "Nastavení",
         _                    => "AssetMap"
     };
+
+    // Oddělený VM pro Accounts (má vlastní kolekci + selected state)
+    public AccountsViewModel AccountsVM { get; }
+
+    // VM pro stránku Transakcí
+    public TransactionsViewModel TransactionsVM { get; }
+
+    // VM pro stránku Aktiv
+    public AssetsViewModel AssetsVM { get; }
+
+    // ── Dashboard data ────────────────────────────────────────
+    private string _dashboardTotal    = "–";
+    private string _dashboardChange   = "";
+    private bool   _dashboardPositive;
+    private IReadOnlyList<TransactionDisplayItem> _dashboardRecentTxs = [];
+
+    public string DashboardTotal
+    {
+        get => _dashboardTotal;
+        private set { _dashboardTotal = value; OnPropertyChanged(); }
+    }
+    public string DashboardChange
+    {
+        get => _dashboardChange;
+        private set { _dashboardChange = value; OnPropertyChanged(); }
+    }
+    public bool DashboardPositive
+    {
+        get => _dashboardPositive;
+        private set { _dashboardPositive = value; OnPropertyChanged(); }
+    }
+    public IReadOnlyList<TransactionDisplayItem> DashboardRecentTxs
+    {
+        get => _dashboardRecentTxs;
+        private set { _dashboardRecentTxs = value; OnPropertyChanged(); }
+    }
+
+    // ── Nastavení — Měna ──────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyEur))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyCzk))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyUsd))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyGbp))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyChf))]
+    private string _displayCurrency = SettingsService.Current.DisplayCurrency;
+
+    public bool IsCurrencyEur => DisplayCurrency == "EUR";
+    public bool IsCurrencyCzk => DisplayCurrency == "CZK";
+    public bool IsCurrencyUsd => DisplayCurrency == "USD";
+    public bool IsCurrencyGbp => DisplayCurrency == "GBP";
+    public bool IsCurrencyChf => DisplayCurrency == "CHF";
+
+    // Kurzy USD → cílová měna (z FxRates — aktuální ECB data)
+    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD");
+    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR");
+    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK");
+    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP");
+    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF");
+
+    private void ApplyCurrency(string code)
+    {
+        DisplayCurrency = code;
+        AccountRepo.SetDisplayCurrency(code, CurrencyRateFor(code));
+        SettingsService.Current.DisplayCurrency = code;
+        SettingsService.Save();
+        _ = AccountRepo.RefreshAsync();
+    }
+
+    public MainViewModel()
+    {
+        // Inicializace kurzu z uložených nastavení (zatím fallback hodnoty)
+        AccountRepo.SetDisplayCurrency(
+            SettingsService.Current.DisplayCurrency,
+            CurrencyRateFor(SettingsService.Current.DisplayCurrency));
+
+        AccountsVM     = new AccountsViewModel();
+        TransactionsVM = new TransactionsViewModel();
+        AssetsVM       = new AssetsViewModel();
+        BuildDashboard();
+        AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
+        PriceRefreshService.Start();
+
+        // Stáhni živé kurzy (frankfurter.app/ECB) — po dokončení re-apply a refresh
+        FxRates.Updated += () => Dispatcher.UIThread.Post(() =>
+            ApplyCurrency(SettingsService.Current.DisplayCurrency));
+
+        // Nejdřív historii (snapshoty), pak aktuální kurz
+        // Až budou oboje hotové, AccountRepo.RefreshAsync() přepočítá BalanceHistory z reálných dat
+        _ = FxRates.RefreshHistoryAsync().ContinueWith(_ => FxRates.RefreshAsync());
+    }
+
+    private void BuildDashboard()
+    {
+        var history = AccountsVM.TotalHistory;
+        if (history.Length == 0) { DashboardTotal = "0"; return; }
+
+        double now     = history[^1];
+        double prev    = history.Length > 1 ? history[^2] : now;
+        double chgPct  = prev > 0 ? (now - prev) / prev * 100 : 0;
+        double chgAbs  = now - prev;
+
+        DashboardTotal    = FormatCurrency(now);
+        DashboardChange   = (chgPct >= 0 ? "▲ +" : "▼ ")
+                            + FormatCurrency(System.Math.Abs(chgAbs))
+                            + "  " + (chgPct >= 0 ? "+" : "") + chgPct.ToString("N2") + " %";
+        DashboardPositive = chgPct >= 0;
+
+        var data        = AccountRepo.GetAll();
+        var creditBrush = new SolidColorBrush(Color.Parse("#00E57A"));
+        var debitBrush  = new SolidColorBrush(Color.Parse("#FF3355"));
+
+        DashboardRecentTxs = data
+            .SelectMany(d => d.RecentTransactions.Select(tx => (tx, d.BaseCurrency)))
+            .OrderByDescending(x => x.tx.Date)
+            .Take(8)
+            .Select(x =>
+            {
+                bool isCredit = x.tx.Type == TransactionType.Deposit;
+                return new TransactionDisplayItem(
+                    isCredit ? "↓" : "↑",
+                    isCredit ? (IBrush)creditBrush : debitBrush,
+                    isCredit ? "Příchozí platba" : "Odchozí platba",
+                    x.tx.Date.ToString("dd. MM. yyyy"),
+                    (isCredit ? "+" : "−") + ((double)x.tx.Quantity).ToString("N2") + " " + x.BaseCurrency,
+                    isCredit);
+            })
+            .ToList();
+    }
+
+    private static string FormatCurrency(double v) =>
+        ((long)System.Math.Round(v))
+            .ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
+
+    // USD → cílová měna (1 USD = X) — živé kurzy z FxRates/ECB
+    internal static double CurrencyRateFor(string code) => FxRates.UsdToFiat(code);
+
+    // ── Sidebar toggle ────────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SidebarWidth))]
+    private bool _isSidebarOpen = true;
+
+    public double SidebarWidth => IsSidebarOpen ? 220.0 : 56.0;
+
+    [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
 
     [RelayCommand] private void NavigateToDashboard()    => CurrentPage = AppPage.Dashboard;
     [RelayCommand] private void NavigateToAccounts()     => CurrentPage = AppPage.Accounts;

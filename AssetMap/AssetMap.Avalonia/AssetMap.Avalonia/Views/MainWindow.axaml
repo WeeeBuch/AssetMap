@@ -5,62 +5,126 @@
         x:Class="AssetMap.Avalonia.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="AssetMap"
+        Icon="avares://AssetMap.Avalonia/Assets/Icon.ico"
         MinWidth="900" MinHeight="600"
         Width="1200" Height="750"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BrushBackground}">
 
-    <Grid ColumnDefinitions="220,*">
+    <Window.Styles>
+        <!-- Nav tlačítka v sidebaru -->
+        <Style Selector="Button.nav">
+            <Setter Property="Background"                 Value="Transparent"/>
+            <Setter Property="Foreground"                 Value="{DynamicResource BrushTextSecondary}"/>
+            <Setter Property="BorderThickness"            Value="0"/>
+            <Setter Property="CornerRadius"               Value="6"/>
+            <Setter Property="Padding"                    Value="10 8"/>
+            <Setter Property="HorizontalAlignment"        Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FontSize"                   Value="13"/>
+            <Setter Property="Cursor"                     Value="Hand"/>
+        </Style>
+        <Style Selector="Button.nav /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+        <Style Selector="Button.nav.active">
+            <Setter Property="Foreground" Value="{DynamicResource BrushAccent}"/>
+        </Style>
+        <Style Selector="Button.nav.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="Auto,*">
 
         <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
         <Border Grid.Column="0"
+                Width="{Binding SidebarWidth}"
                 Background="{DynamicResource BrushSurfaceAlt}"
                 BorderBrush="{DynamicResource BrushBorder}"
-                BorderThickness="0 0 1 0">
+                BorderThickness="0 0 1 0"
+                ClipToBounds="True">
             <DockPanel>
 
                 <!-- Logo -->
-                <Border DockPanel.Dock="Top" Padding="16 20 16 12">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="32" Height="32" CornerRadius="8">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                    <GradientStop Color="#FF0078D4" Offset="0"/>
-                                    <GradientStop Color="#FF00B4D8" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <TextBlock Text="A"
-                                       FontSize="17" FontWeight="Bold"
-                                       Foreground="White"
-                                       HorizontalAlignment="Center"
+                <Border DockPanel.Dock="Top" Padding="12 18 12 12">
+                    <Grid Height="32">
+                        <!-- Otevřeno: ikona + název -->
+                        <StackPanel Orientation="Horizontal" Spacing="10"
+                                    IsVisible="{Binding IsSidebarOpen}"
+                                    VerticalAlignment="Center">
+                            <Border Width="40" Height="40" CornerRadius="12"
+                                    ClipToBounds="True">
+                                <Image Source="avares://AssetMap.Avalonia/Assets/Icon.png"
+                                       RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                            </Border>
+                            <TextBlock Text="AssetMap" FontSize="15" FontWeight="Bold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
                                        VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Zavřeno: jen ikona, vycentrovaná -->
+                        <Border Width="40" Height="40" CornerRadius="12"
+                                ClipToBounds="True"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                IsVisible="{Binding !IsSidebarOpen}">
+                            <Image Source="avares://AssetMap.Avalonia/Assets/Icon.png"
+                                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
                         </Border>
-                        <TextBlock Text="AssetMap"
-                                   FontSize="15" FontWeight="Bold"
-                                   Foreground="{DynamicResource BrushTextPrimary}"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Separator -->
-                <Border DockPanel.Dock="Top"
-                        Height="1"
+                <Border DockPanel.Dock="Top" Height="1"
                         Background="{DynamicResource BrushBorder}"
-                        Margin="0 0 0 8"/>
+                        Margin="0 0 0 6"/>
 
-                <!-- Settings dole -->
+                <!-- Spodní oblast: Settings + Toggle -->
                 <Border DockPanel.Dock="Bottom"
                         BorderBrush="{DynamicResource BrushBorder}"
                         BorderThickness="0 1 0 0"
-                        Padding="8 8">
-                    <Button Classes="nav"
-                            Classes.active="{Binding IsOnSettings}"
-                            Command="{Binding NavigateToSettingsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="⚙" FontSize="14"/>
-                            <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        Padding="8 6">
+                    <StackPanel Spacing="2">
+
+                        <Button Classes="nav"
+                                Classes.active="{Binding IsOnSettings}"
+                                Command="{Binding NavigateToSettingsCommand}"
+                                ToolTip.Tip="Nastavení">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="10"
+                                            IsVisible="{Binding IsSidebarOpen}">
+                                    <TextBlock Text="⚙" FontSize="14" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Nastavení" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="⚙" FontSize="14"
+                                           IsVisible="{Binding !IsSidebarOpen}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                        <!-- Collapse / Expand tlačítko -->
+                        <Button Classes="nav"
+                                Command="{Binding ToggleSidebarCommand}"
+                                ToolTip.Tip="Skrýt / zobrazit panel">
+                            <Grid>
+                                <TextBlock Text="‹ Skrýt" FontSize="12"
+                                           IsVisible="{Binding IsSidebarOpen}"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="›" FontSize="16"
+                                           IsVisible="{Binding !IsSidebarOpen}"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                    </StackPanel>
                 </Border>
 
                 <!-- Navigace -->
@@ -69,49 +133,77 @@
                     <TextBlock Text="PŘEHLED"
                                FontSize="10" FontWeight="Bold"
                                Foreground="{DynamicResource BrushTextSecondary}"
-                               Margin="12 8 0 4"
-                               Opacity="0.7"/>
+                               Margin="12 6 0 4" Opacity="0.7"
+                               IsVisible="{Binding IsSidebarOpen}"/>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnDashboard}"
-                            Command="{Binding NavigateToDashboardCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="◈" FontSize="14"/>
-                            <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToDashboardCommand}"
+                            ToolTip.Tip="Dashboard">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="◈" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="◈" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <TextBlock Text="SPRÁVA"
                                FontSize="10" FontWeight="Bold"
                                Foreground="{DynamicResource BrushTextSecondary}"
-                               Margin="12 12 0 4"
-                               Opacity="0.7"/>
+                               Margin="12 10 0 4" Opacity="0.7"
+                               IsVisible="{Binding IsSidebarOpen}"/>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnAccounts}"
-                            Command="{Binding NavigateToAccountsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="⬡" FontSize="14"/>
-                            <TextBlock Text="Účty" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToAccountsCommand}"
+                            ToolTip.Tip="Účty">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="⬡" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Účty" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="⬡" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnTransactions}"
-                            Command="{Binding NavigateToTransactionsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="↕" FontSize="14"/>
-                            <TextBlock Text="Transakce" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToTransactionsCommand}"
+                            ToolTip.Tip="Transakce">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="↕" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Transakce" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="↕" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                     <Button Classes="nav"
                             Classes.active="{Binding IsOnAssets}"
-                            Command="{Binding NavigateToAssetsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="▦" FontSize="14"/>
-                            <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
-                        </StackPanel>
+                            Command="{Binding NavigateToAssetsCommand}"
+                            ToolTip.Tip="Aktiva">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                        IsVisible="{Binding IsSidebarOpen}">
+                                <TextBlock Text="▦" FontSize="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Aktiva" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="▦" FontSize="14"
+                                       IsVisible="{Binding !IsSidebarOpen}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
 
                 </StackPanel>
@@ -149,8 +241,7 @@
                                     <GradientStop Color="#FF00B4D8" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
-                            <TextBlock Text="U"
-                                       Foreground="White"
+                            <TextBlock Text="U" Foreground="White"
                                        FontWeight="Bold" FontSize="13"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
@@ -166,10 +257,369 @@
                 <Panel>
                     <views:MainView Margin="24"
                                     IsVisible="{Binding IsOnDashboard}"/>
+                    <Panel IsVisible="{Binding IsOnAccounts}">
+                        <views:AccountsView Margin="24"
+                                            DataContext="{Binding AccountsVM}"/>
+                    </Panel>
+                    <Panel IsVisible="{Binding IsOnTransactions}">
+                        <views:TransactionsView Margin="24"
+                                                DataContext="{Binding TransactionsVM}"/>
+                    </Panel>
+                    <Panel IsVisible="{Binding IsOnAssets}">
+                        <views:AssetsView Margin="24"
+                                          DataContext="{Binding AssetsVM}"/>
+                    </Panel>
                     <views:SettingsView Margin="24"
                                         IsVisible="{Binding IsOnSettings}"/>
                 </Panel>
             </ScrollViewer>
+
+            <!-- ══════════════════════════════════
+                 MODAL — PŘIDAT / UPRAVIT ÚČET
+                 Viewport-fixed: mimo ScrollViewer
+                 ══════════════════════════════════ -->
+            <Panel Grid.Row="0" Grid.RowSpan="2"
+                   IsVisible="{Binding AccountsVM.IsAddDialogOpen}">
+                <Panel DataContext="{Binding AccountsVM}"
+                       x:DataType="vm:AccountsViewModel">
+
+                    <!-- Backdrop -->
+                    <Border Background="#B2000000"/>
+
+                    <!-- Dialog card -->
+                    <Border Width="480"
+                            CornerRadius="14"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1"
+                            Padding="28 24"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            BoxShadow="0 12 48 4 #70000000">
+                        <StackPanel Spacing="0">
+
+                            <!-- Hlavička -->
+                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 22">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding AddDialogTitle}"
+                                           FontSize="17" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Classes="ghost"
+                                        Command="{Binding CancelAddAccountCommand}"
+                                        Width="30" Height="30" Padding="0" CornerRadius="8">
+                                    <TextBlock Text="✕" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+                            <!-- ── Název ─── -->
+                            <TextBlock Text="Název *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding AddName}"
+                                     PlaceholderText="např. Běžný účet"
+                                     Margin="0 0 0 14"/>
+
+                            <!-- ── Instituce ─── -->
+                            <TextBlock Text="Instituce / Poskytovatel"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding AddInstitution}"
+                                     PlaceholderText="např. Česká spořitelna"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Typ účtu ─── -->
+                            <TextBlock Text="Typ účtu"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 8"/>
+                            <Border CornerRadius="8"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    Padding="3"
+                                    HorizontalAlignment="Left"
+                                    Margin="0 0 0 16">
+                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                    <Button Classes="seg" Classes.on="{Binding AddIsTypeBank}"
+                                            Command="{Binding AddSetTypeBankCommand}"
+                                            Content="🏦 Banka"/>
+                                    <Button Classes="seg" Classes.on="{Binding AddIsTypeCrypto}"
+                                            Command="{Binding AddSetTypeCryptoCommand}"
+                                            Content="₿ Krypto"/>
+                                    <Button Classes="seg" Classes.on="{Binding AddIsTypeBrokerage}"
+                                            Command="{Binding AddSetTypeBrokerageCommand}"
+                                            Content="📈 Broker"/>
+                                    <Button Classes="seg" Classes.on="{Binding AddIsTypeCash}"
+                                            Command="{Binding AddSetTypeCashCommand}"
+                                            Content="💵 Hotovost"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ── Barva účtu ─── -->
+                            <TextBlock Text="Barva ikony"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 8"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor0}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor0Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#4263EB"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor1}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor1Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#00B3FF"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor2}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor2Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#00E57A"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor3}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor3Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#12B886"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor4}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor4Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#F7931A"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor5}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor5Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#FF3355"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor6}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor6Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#845EF7"/>
+                                    </Button>
+                                </Panel>
+                                <Panel Width="34" Height="34">
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{DynamicResource BrushAccent}" BorderThickness="2.5" IsVisible="{Binding IsAddColor7}"/>
+                                    <Button Classes="ghost" Width="26" Height="26" Padding="0" CornerRadius="13" Command="{Binding AddSelectColor7Command}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="22" Height="22" CornerRadius="11" Background="#8B8B9A"/>
+                                    </Button>
+                                </Panel>
+                            </StackPanel>
+
+                            <!-- ── Aktivum / Symbol ─── -->
+                            <StackPanel IsVisible="{Binding AddShowAssetSection}">
+                                <TextBlock Text="Aktivum / Symbol *"
+                                           FontSize="12" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           Margin="0 0 0 5"/>
+                                <TextBox Text="{Binding AddAssetText}"
+                                         PlaceholderText="{Binding AddAssetPlaceholder}"
+                                         Margin="0 0 0 4"/>
+
+                                <!-- Status hledání -->
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                            IsVisible="{Binding AddIsAssetSearching}">
+                                    <TextBlock Text="⏳" FontSize="11"/>
+                                    <TextBlock Text="Hledám na CoinGecko…"
+                                               FontSize="11" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                            IsVisible="{Binding AddIsAssetFound}">
+                                    <TextBlock Text="✓" FontSize="11" FontWeight="Bold"
+                                               Foreground="{DynamicResource BrushSuccess}"/>
+                                    <TextBlock Text="{Binding AddAssetFoundName}"
+                                               FontSize="11" Foreground="{DynamicResource BrushSuccess}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 4"
+                                            IsVisible="{Binding AddIsAssetNotFound}">
+                                    <TextBlock Text="✗ Nenalezeno na CoinGecko (krypto). Akcie/ETF? Zadej cenu v USD ručně:"
+                                               FontSize="11" Foreground="{DynamicResource BrushDanger}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <!-- Ruční cena (záloha pro akcie / ETF) -->
+                                <StackPanel IsVisible="{Binding AddShowManualPrice}" Margin="0 0 0 8">
+                                    <TextBox Text="{Binding AddManualPriceText}"
+                                             PlaceholderText="Cena v USD, např. 192.50"
+                                             Margin="0 4 0 0"/>
+                                </StackPanel>
+                                <!-- Indikátor ruční ceny (Manual stav) -->
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                            IsVisible="{Binding AddIsAssetManual}">
+                                    <TextBlock Text="✓" FontSize="11" FontWeight="Bold"
+                                               Foreground="{DynamicResource BrushSuccess}"/>
+                                    <TextBlock Text="{Binding AddAssetFoundName}"
+                                               FontSize="11" Foreground="{DynamicResource BrushSuccess}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                            IsVisible="{Binding AddIsAssetError}">
+                                    <TextBlock Text="⚠ " FontSize="11" Foreground="{DynamicResource BrushDanger}"/>
+                                    <TextBlock Text="{Binding AddAssetFoundName}"
+                                               FontSize="11" Foreground="{DynamicResource BrushDanger}"/>
+                                </StackPanel>
+                                <Border Height="12" IsVisible="{Binding AddIsAssetNone}"/>
+
+                                <!-- ── Počáteční zůstatek ─── -->
+                                <TextBlock Text="Počáteční zůstatek *"
+                                           FontSize="12" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           Margin="0 0 0 5"/>
+                                <TextBox Text="{Binding AddBalanceText}"
+                                         PlaceholderText="0"
+                                         Margin="0 0 0 16"/>
+                            </StackPanel><!-- end AddShowAssetSection -->
+
+                            <!-- ── Oddělovač ─── -->
+                            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0 8 0 16"/>
+
+                            <!-- ── Akční tlačítka ─── -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                                <Button Classes="secondary"
+                                        Command="{Binding CancelAddAccountCommand}"
+                                        Content="Zrušit"
+                                        Padding="20 9"/>
+                                <Button Classes="primary"
+                                        Command="{Binding ConfirmAddAccountCommand}"
+                                        IsEnabled="{Binding AddCanConfirm}"
+                                        Content="{Binding AddConfirmButtonText}"
+                                        Padding="20 9"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+                </Panel>
+            </Panel>
+
+            <!-- ══════════════════════════════════
+                 MODAL — PŘIDAT TRANSAKCI
+                 Viewport-fixed: mimo ScrollViewer
+                 ══════════════════════════════════ -->
+            <Panel Grid.Row="0" Grid.RowSpan="2"
+                   IsVisible="{Binding TransactionsVM.IsTxDialogOpen}">
+                <Panel DataContext="{Binding TransactionsVM}"
+                       x:DataType="vm:TransactionsViewModel">
+
+                    <!-- Backdrop -->
+                    <Border Background="#B2000000"/>
+
+                    <!-- Dialog card -->
+                    <Border Width="440"
+                            CornerRadius="14"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1"
+                            Padding="28 24"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            BoxShadow="0 12 48 4 #70000000">
+                        <StackPanel Spacing="0">
+
+                            <!-- Hlavička -->
+                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 22">
+                                <TextBlock Grid.Column="0"
+                                           Text="Přidat transakci"
+                                           FontSize="17" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Classes="ghost"
+                                        Command="{Binding CancelTxCommand}"
+                                        Width="30" Height="30" Padding="0" CornerRadius="8">
+                                    <TextBlock Text="✕" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+                            <!-- ── Účet ─── -->
+                            <TextBlock Text="Účet *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <ComboBox ItemsSource="{Binding TxAccountOptions}"
+                                      SelectedIndex="{Binding TxAccountIndex}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0 0 0 16"/>
+
+                            <!-- ── Typ transakce ─── -->
+                            <TextBlock Text="Typ"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 8"/>
+                            <Border CornerRadius="8"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    Padding="3"
+                                    HorizontalAlignment="Left"
+                                    Margin="0 0 0 16">
+                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                    <Button Classes="seg" Classes.on="{Binding TxIsDeposit}"
+                                            Command="{Binding SetTxDepositCommand}"
+                                            Content="↓ Příchozí"/>
+                                    <Button Classes="seg" Classes.on="{Binding TxIsWithdrawal}"
+                                            Command="{Binding SetTxWithdrawalCommand}"
+                                            Content="↑ Odchozí"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ── Částka ─── -->
+                            <TextBlock Text="Částka *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxAmountText}"
+                                     PlaceholderText="0,00"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Datum ─── -->
+                            <TextBlock Text="Datum *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxDateText}"
+                                     PlaceholderText="dd.MM.yyyy"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Poznámka ─── -->
+                            <TextBlock Text="Poznámka"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxNoteText}"
+                                     PlaceholderText="volitelné"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Oddělovač ─── -->
+                            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0 4 0 16"/>
+
+                            <!-- ── Akční tlačítka ─── -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                                <Button Classes="secondary"
+                                        Command="{Binding CancelTxCommand}"
+                                        Content="Zrušit"
+                                        Padding="20 9"/>
+                                <Button Classes="primary"
+                                        Command="{Binding ConfirmTxCommand}"
+                                        IsEnabled="{Binding TxCanConfirm}"
+                                        Content="Přidat transakci"
+                                        Padding="20 9"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+                </Panel>
+            </Panel>
 
         </Grid>
     </Grid>

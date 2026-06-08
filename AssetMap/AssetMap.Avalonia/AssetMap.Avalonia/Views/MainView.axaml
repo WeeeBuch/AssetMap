@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AssetMap.Avalonia.ViewModels"
-             xmlns:c="using:AssetMap.Avalonia.Views.Components"
+             xmlns:comp="using:AssetMap.Avalonia.Views.Components"
              x:Class="AssetMap.Avalonia.Views.MainView"
              x:DataType="vm:MainViewModel">
     <Design.DataContext>
@@ -12,71 +12,71 @@
 
         <!-- ══════════ HERO ══════════ -->
         <Border Classes="card">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="Auto,24,*" RowDefinitions="Auto,16,Auto">
+
+                <!-- Celková hodnota + změna -->
+                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6" VerticalAlignment="Top">
                     <TextBlock Text="Celková hodnota portfolia"
                                FontSize="13"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
-                    <TextBlock Text="$142 350,40"
-                               FontSize="38" FontWeight="Bold"
-                               Foreground="{DynamicResource BrushTextPrimary}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Background="#204EC994" CornerRadius="4" Padding="8 3">
-                            <TextBlock Text="▲ +$3 240,00  +2,32%"
-                                       Foreground="{DynamicResource BrushSuccess}"
-                                       FontSize="13" FontWeight="SemiBold"/>
-                        </Border>
-                        <TextBlock Text="dnes"
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                        <TextBlock Text="{Binding DashboardTotal}"
+                                   FontSize="36" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                        <TextBlock Text="{Binding AccountsVM.DisplayCurrency}"
+                                   FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextSecondary}"
-                                   FontSize="13" VerticalAlignment="Center"/>
+                                   VerticalAlignment="Bottom" Margin="0 0 0 6"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Background="#204EC994" CornerRadius="4" Padding="8 3"
+                                IsVisible="{Binding DashboardPositive}">
+                            <TextBlock Text="{Binding DashboardChange}"
+                                       Foreground="{DynamicResource BrushSuccess}"
+                                       FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                        <Border Background="#25FF3355" CornerRadius="4" Padding="8 3"
+                                IsVisible="{Binding !DashboardPositive}">
+                            <TextBlock Text="{Binding DashboardChange}"
+                                       Foreground="{DynamicResource BrushDanger}"
+                                       FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                        <TextBlock Text="za vybrané období"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Mini sparkline -->
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal" Spacing="4"
-                            VerticalAlignment="Bottom" Margin="0 0 0 4">
-                    <Border Width="8" Height="18" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.35"/>
-                    <Border Width="8" Height="28" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.45"/>
-                    <Border Width="8" Height="22" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.50"/>
-                    <Border Width="8" Height="38" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.60"/>
-                    <Border Width="8" Height="30" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.70"/>
-                    <Border Width="8" Height="46" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.82"/>
-                    <Border Width="8" Height="40" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="0.90"/>
-                    <Border Width="8" Height="56" CornerRadius="2" Background="{DynamicResource BrushAccent}" Opacity="1.00"/>
-                </StackPanel>
+                <!-- Period switcher — sdílí stav s AccountsVM -->
+                <Border Grid.Row="2" Grid.Column="0"
+                        CornerRadius="7"
+                        Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1" Padding="2"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="0">
+                        <Button Classes="seg" Classes.on="{Binding AccountsVM.IsPeriodD1}"
+                                Command="{Binding AccountsVM.SetPeriodD1Command}" Content="24h"/>
+                        <Button Classes="seg" Classes.on="{Binding AccountsVM.IsPeriodD7}"
+                                Command="{Binding AccountsVM.SetPeriodD7Command}" Content="7 dní"/>
+                        <Button Classes="seg" Classes.on="{Binding AccountsVM.IsPeriodM1}"
+                                Command="{Binding AccountsVM.SetPeriodM1Command}" Content="1 měs."/>
+                        <Button Classes="seg" Classes.on="{Binding AccountsVM.IsPeriodM3}"
+                                Command="{Binding AccountsVM.SetPeriodM3Command}" Content="3 měs."/>
+                        <Button Classes="seg" Classes.on="{Binding AccountsVM.IsPeriodY1}"
+                                Command="{Binding AccountsVM.SetPeriodY1Command}" Content="1 rok"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Chart vývoje celkového portfolia -->
+                <comp:SimpleLineChart Grid.Row="0" Grid.RowSpan="3" Grid.Column="2"
+                                      Height="160"
+                                      BalanceHistory="{Binding AccountsVM.TotalHistory}"/>
+
             </Grid>
         </Border>
-
-        <!-- ══════════ ASSET KARTY ══════════ -->
-        <Grid ColumnDefinitions="*,16,*,16,*">
-            <c:AssetCard Grid.Column="0"
-                         Title="Bitcoin" TotalValue="$82 000,00"
-                         Quantity="1,05 BTC" Change="▲ +1,2%"
-                         IsPositive="True">
-                <c:AssetCard.DotBrush>
-                    <SolidColorBrush Color="#F7931A"/>
-                </c:AssetCard.DotBrush>
-            </c:AssetCard>
-
-            <c:AssetCard Grid.Column="2"
-                         Title="Ethereum" TotalValue="$24 500,00"
-                         Quantity="10,2 ETH" Change="▲ +3,4%"
-                         IsPositive="True">
-                <c:AssetCard.DotBrush>
-                    <SolidColorBrush Color="#627EEA"/>
-                </c:AssetCard.DotBrush>
-            </c:AssetCard>
-
-            <c:AssetCard Grid.Column="4"
-                         Title="Akcie" TotalValue="$35 850,00"
-                         Quantity="3 pozice" Change="▼ -0,8%"
-                         IsPositive="False">
-                <c:AssetCard.DotBrush>
-                    <DynamicResourceExtension ResourceKey="BrushAccent"/>
-                </c:AssetCard.DotBrush>
-            </c:AssetCard>
-        </Grid>
 
         <!-- ══════════ ÚČTY + TRANSAKCE ══════════ -->
         <Grid ColumnDefinitions="*,16,*">
@@ -88,72 +88,102 @@
                         <TextBlock Text="Účty"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12">Přidat</Button>
+                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12"
+                                Command="{Binding NavigateToAccountsCommand}">Vše →</Button>
                     </Grid>
 
-                    <c:AccountRow IconText="₿" AccountName="BTC Peněženka 01"
-                                  Subtitle="bc1q…a3f2"
-                                  Value="$82 000" SubValue="1,05 BTC"
-                                  ShowDivider="True">
-                        <c:AccountRow.IconBackground><SolidColorBrush Color="#20F7931A"/></c:AccountRow.IconBackground>
-                        <c:AccountRow.IconForeground><SolidColorBrush Color="#F7931A"/></c:AccountRow.IconForeground>
-                    </c:AccountRow>
+                    <ItemsControl ItemsSource="{Binding AccountsVM.Accounts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:AccountCardViewModel">
+                                <Grid ColumnDefinitions="36,12,*,Auto" Margin="0 7">
 
-                    <c:AccountRow IconText="Ξ" AccountName="ETH Peněženka"
-                                  Subtitle="0x4a…9c1b"
-                                  Value="$24 500" SubValue="10,2 ETH"
-                                  ShowDivider="True">
-                        <c:AccountRow.IconBackground><SolidColorBrush Color="#20627EEA"/></c:AccountRow.IconBackground>
-                        <c:AccountRow.IconForeground><SolidColorBrush Color="#627EEA"/></c:AccountRow.IconForeground>
-                    </c:AccountRow>
+                                    <Border Grid.Column="0"
+                                            Width="36" Height="36" CornerRadius="9"
+                                            Background="{Binding IconBrush}">
+                                        <TextBlock Text="{Binding IconLetter}"
+                                                   FontSize="14" FontWeight="Bold" Foreground="White"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
 
-                    <c:AccountRow IconText="🏦" AccountName="KB Běžný účet"
-                                  Subtitle="Komerční banka"
-                                  Value="$35 850" SubValue="CZK 826 500"
-                                  ShowDivider="False">
-                        <c:AccountRow.IconBackground><SolidColorBrush Color="#200078D4"/></c:AccountRow.IconBackground>
-                        <c:AccountRow.IconForeground><SolidColorBrush Color="#0078D4"/></c:AccountRow.IconForeground>
-                    </c:AccountRow>
+                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding AccountName}" FontSize="13"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="{Binding Institution}" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="3" Spacing="1"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding BaseAmount}" FontSize="13" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding BaseCurrency}" FontSize="11"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       VerticalAlignment="Bottom" Margin="0 0 0 1"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding ChangeText}" FontSize="11"
+                                                   HorizontalAlignment="Right"
+                                                   Foreground="{DynamicResource BrushSuccess}"
+                                                   IsVisible="{Binding ChangePositive}"/>
+                                        <TextBlock Text="{Binding ChangeText}" FontSize="11"
+                                                   HorizontalAlignment="Right"
+                                                   Foreground="{DynamicResource BrushDanger}"
+                                                   IsVisible="{Binding !ChangePositive}"/>
+                                    </StackPanel>
+
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
 
             <!-- Transakce -->
             <Border Grid.Column="2" Classes="card">
-                <StackPanel Spacing="14">
-                    <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 2">
+                <StackPanel Spacing="0">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 12">
                         <TextBlock Text="Poslední transakce"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12">Vše</Button>
+                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12"
+                                Command="{Binding NavigateToTransactionsCommand}">Vše →</Button>
                     </Grid>
 
-                    <c:TransactionRow IconText="▲" Description="Nákup BTC"
-                                      Date="06. 06. 2026" Amount="+0,30 BTC"
-                                      IsPositive="True">
-                        <c:TransactionRow.IconBackground><SolidColorBrush Color="#204EC994"/></c:TransactionRow.IconBackground>
-                        <c:TransactionRow.IconForeground><DynamicResourceExtension ResourceKey="BrushSuccess"/></c:TransactionRow.IconForeground>
-                    </c:TransactionRow>
+                    <Border Classes="separator" Margin="0 0 0 4"/>
 
-                    <c:TransactionRow IconText="↕" Description="Transfer ETH → ETH Wallet"
-                                      Date="04. 06. 2026" Amount="5,0 ETH"
-                                      IsNeutral="True">
-                        <c:TransactionRow.IconBackground><SolidColorBrush Color="#20627EEA"/></c:TransactionRow.IconBackground>
-                        <c:TransactionRow.IconForeground><SolidColorBrush Color="#627EEA"/></c:TransactionRow.IconForeground>
-                    </c:TransactionRow>
+                    <ItemsControl ItemsSource="{Binding DashboardRecentTxs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:TransactionDisplayItem">
+                                <Grid ColumnDefinitions="36,12,*,Auto" Margin="0 7">
 
-                    <c:TransactionRow IconText="▼" Description="Výdaj — poplatky"
-                                      Date="04. 06. 2026" Amount="-0,002 ETH"
-                                      IsNegative="True">
-                        <c:TransactionRow.IconBackground><SolidColorBrush Color="#20F14C4C"/></c:TransactionRow.IconBackground>
-                        <c:TransactionRow.IconForeground><DynamicResourceExtension ResourceKey="BrushDanger"/></c:TransactionRow.IconForeground>
-                    </c:TransactionRow>
+                                    <Border Grid.Column="0"
+                                            Width="36" Height="36" CornerRadius="9"
+                                            Background="{Binding IconBrush}">
+                                        <TextBlock Text="{Binding IconText}"
+                                                   FontSize="13" FontWeight="Bold" Foreground="White"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
 
-                    <c:TransactionRow IconText="★" Description="Staking odměna"
-                                      Date="01. 06. 2026" Amount="+0,15 ETH"
-                                      IsPositive="True">
-                        <c:TransactionRow.IconBackground><SolidColorBrush Color="#20CCA700"/></c:TransactionRow.IconBackground>
-                        <c:TransactionRow.IconForeground><DynamicResourceExtension ResourceKey="BrushWarning"/></c:TransactionRow.IconForeground>
-                    </c:TransactionRow>
+                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Description}" FontSize="13"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                                        <TextBlock Text="{Binding Date}" FontSize="11"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+
+                                    <Panel Grid.Column="3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Amount}" FontSize="13" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushSuccess}"
+                                                   IsVisible="{Binding IsCredit}"/>
+                                        <TextBlock Text="{Binding Amount}" FontSize="13" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushDanger}"
+                                                   IsVisible="{Binding !IsCredit}"/>
+                                    </Panel>
+
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                 </StackPanel>
             </Border>

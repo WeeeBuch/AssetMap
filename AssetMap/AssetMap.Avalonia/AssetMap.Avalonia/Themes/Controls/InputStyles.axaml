@@ -58,6 +58,82 @@
 
 
     <!-- ══════════════════════════════════
+         COMBOBOX — stejný look jako TextBox
+         ══════════════════════════════════ -->
+
+    <!-- Základní vzhled -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurfaceAlt}"/>
+        <Setter Property="Foreground"      Value="{DynamicResource BrushTextPrimary}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="4"/>
+        <Setter Property="Padding"         Value="10 0 6 0"/>
+        <Setter Property="MinHeight"       Value="34"/>
+        <Setter Property="FontSize"        Value="13"/>
+    </Style>
+
+    <!-- Inner background border -->
+    <Style Selector="ComboBox /template/ Border#Background">
+        <Setter Property="Background"      Value="{DynamicResource BrushSurfaceAlt}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="4"/>
+    </Style>
+
+    <!-- Hover -->
+    <Style Selector="ComboBox:pointerover /template/ Border#Background">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushTextSecondary}"/>
+        <Setter Property="Background"  Value="{DynamicResource BrushSurfaceAlt}"/>
+    </Style>
+
+    <!-- Otevřeno / focus -->
+    <Style Selector="ComboBox:focus-within /template/ Border#Background">
+        <Setter Property="BorderBrush"     Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="BorderThickness" Value="1 1 1 2"/>
+    </Style>
+
+    <!-- Šipka v ComboBox — barva textu -->
+    <Style Selector="ComboBox /template/ PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+    </Style>
+
+    <!-- Popup — tmavé pozadí -->
+    <Style Selector="ComboBox /template/ Popup /template/ Border">
+        <Setter Property="Background"   Value="{DynamicResource BrushSurface}"/>
+        <Setter Property="BorderBrush"  Value="{DynamicResource BrushBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="BoxShadow"    Value="0 4 20 0 #50000000"/>
+    </Style>
+
+    <!-- Položky v dropdownu -->
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+        <Setter Property="FontSize"   Value="13"/>
+        <Setter Property="Padding"    Value="10 7"/>
+        <Setter Property="MinHeight"  Value="0"/>
+    </Style>
+    <Style Selector="ComboBoxItem /template/ ContentPresenter">
+        <Setter Property="Background"   Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="3"/>
+    </Style>
+    <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}"/>
+    </Style>
+    <Style Selector="ComboBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
+    </Style>
+    <Style Selector="ComboBoxItem:selected">
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ComboBoxItem:selected:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushAccentHover}"/>
+    </Style>
+
+
+    <!-- ══════════════════════════════════
          TOGGLESWITCH — accent barva místo FluentTheme modré
          Track part = Border#SwitchKnobBounds
          Generické (base) styly musí být PŘED pseudo-class override.

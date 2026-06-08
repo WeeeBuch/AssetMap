@@ -95,6 +95,168 @@
         </Border>
 
         <!-- ══════════════════════════════════
+             MĚNA
+             ══════════════════════════════════ -->
+        <Border Classes="card" Padding="24">
+            <StackPanel Spacing="0">
+
+                <StackPanel Spacing="3" Margin="0 0 0 16">
+                    <TextBlock Text="Zobrazovací měna"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                    <TextBlock Text="Všechny hodnoty portfolia jsou přepočítány na tuto měnu"
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                </StackPanel>
+
+                <Border Classes="separator" Margin="0 0 0 16"/>
+
+                <!-- Výběr měny — karty s výběrovým kroužkem -->
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0 0 0 12">
+
+                    <!-- USD -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyUsd}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyUsdCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="$" FontSize="26" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="USD" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
+                    <!-- EUR -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyEur}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyEurCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="€" FontSize="24" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="EUR" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
+                    <!-- CZK -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyCzk}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyCzkCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="Kč" FontSize="20" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="CZK" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
+                    <!-- GBP -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyGbp}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyGbpCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="£" FontSize="24" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="GBP" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
+                    <!-- CHF -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyChf}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyChfCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="Fr" FontSize="22" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="CHF" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
+                </StackPanel>
+
+                <!-- Poznámka -->
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 4 0 0">
+                    <TextBlock Text="ℹ"
+                               FontSize="12"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="Kurzy jsou orientační. Přesné hodnoty budou dostupné po připojení k serveru."
+                               FontSize="11"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+
+        <!-- ══════════════════════════════════
              VZHLED
              ══════════════════════════════════ -->
         <Border Classes="card" Padding="24">

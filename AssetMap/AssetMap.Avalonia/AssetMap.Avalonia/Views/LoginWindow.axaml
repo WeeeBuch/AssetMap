@@ -4,6 +4,7 @@
         x:Class="AssetMap.Avalonia.Views.LoginWindow"
         x:DataType="vm:LoginViewModel"
         Title="AssetMap"
+        Icon="avares://AssetMap.Avalonia/Assets/Icon.ico"
         Width="440" Height="560"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
@@ -34,20 +35,12 @@
 
                 <!-- Logo + název -->
                 <StackPanel HorizontalAlignment="Center" Spacing="10" Margin="0 0 0 32">
-                    <Border Width="56" Height="56"
-                            CornerRadius="14"
+                    <Border Width="64" Height="64"
+                            CornerRadius="16"
+                            ClipToBounds="True"
                             HorizontalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                <GradientStop Color="#FF0078D4" Offset="0"/>
-                                <GradientStop Color="#FF00B4D8" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock Text="A"
-                                   FontSize="26" FontWeight="Bold"
-                                   Foreground="White"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                        <Image Source="avares://AssetMap.Avalonia/Assets/Icon.png"
+                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
                     </Border>
 
                     <TextBlock Text="AssetMap"
