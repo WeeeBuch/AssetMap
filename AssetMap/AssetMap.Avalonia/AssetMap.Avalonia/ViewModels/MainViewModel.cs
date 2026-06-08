@@ -43,6 +43,9 @@ public partial class MainViewModel : ViewModelBase
     // Oddělený VM pro Accounts (má vlastní kolekci + selected state)
     public AccountsViewModel AccountsVM { get; }
 
+    // VM pro stránku Transakcí
+    public TransactionsViewModel TransactionsVM { get; }
+
     // ── Dashboard data ────────────────────────────────────────
     private string _dashboardTotal    = "–";
     private string _dashboardChange   = "";
@@ -73,6 +76,7 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel()
     {
         AccountsVM = new AccountsViewModel();
+        TransactionsVM = new TransactionsViewModel();
         BuildDashboard();
         // Dashboard se taky aktualizuje po každém price refreshi
         AccountRepo.DataRefreshed += BuildDashboard;

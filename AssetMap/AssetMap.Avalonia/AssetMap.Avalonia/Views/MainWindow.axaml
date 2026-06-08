@@ -261,6 +261,10 @@
                         <views:AccountsView Margin="24"
                                             DataContext="{Binding AccountsVM}"/>
                     </Panel>
+                    <Panel IsVisible="{Binding IsOnTransactions}">
+                        <views:TransactionsView Margin="24"
+                                                DataContext="{Binding TransactionsVM}"/>
+                    </Panel>
                     <views:SettingsView Margin="24"
                                         IsVisible="{Binding IsOnSettings}"/>
                 </Panel>

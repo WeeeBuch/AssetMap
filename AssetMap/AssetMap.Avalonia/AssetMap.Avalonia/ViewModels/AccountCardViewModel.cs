@@ -61,7 +61,7 @@ public partial class AccountCardViewModel : ViewModelBase
     {
         var acc      = data.Account;
         var history  = data.BalanceHistory;
-        var iconBrush = IconBrushFor(acc.AccountType, acc.Name);
+        var iconBrush = BrushFor(acc.AccountType, acc.Name);
 
         // Konverzní kurz = ConvertedBalance / CurrentBalance (např. CZK→EUR)
         double conversionRate = data.ConvertedBalance.HasValue && data.CurrentBalance > 0
@@ -127,7 +127,7 @@ public partial class AccountCardViewModel : ViewModelBase
     }
 
     /// <summary>Deterministická barva ikony podle typu/jména.</summary>
-    private static IBrush IconBrushFor(AccountType type, string name) => type switch
+    public static IBrush BrushFor(AccountType type, string name) => type switch
     {
         AccountType.CryptoWallet => new SolidColorBrush(Color.Parse("#F7931A")), // BTC oranžová
         AccountType.Brokerage    => new SolidColorBrush(Color.Parse("#6C5CE7")), // fialová
