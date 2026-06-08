@@ -110,7 +110,7 @@ public static class AccountRepo
             RecentTransactions = [],
         };
 
-        _cache.Insert(0, data);
+        _cache.Add(data);
         DataRefreshed?.Invoke();
     }
 
@@ -198,11 +198,12 @@ public static class AccountRepo
         DataRefreshed?.Invoke();
     }
 
+#if DEBUG
+
     // ── Mock user ID ──────────────────────────────────────────
     private static readonly Guid _mockUserId =
         Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-#if DEBUG
     // ── Mock data ─────────────────────────────────────────────
     private static readonly Asset AsstCzk = new()
     {
