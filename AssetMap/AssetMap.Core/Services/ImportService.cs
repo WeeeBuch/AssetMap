@@ -104,18 +104,34 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
             },
         };
 
-        var txsToAdd     = new List<Transaction>();
-        decimal holdingDelta = 0m;
+        var txsToAdd = new List<Transaction>();
 
-        // KB two-pass: sbírej EUR nákupy pro lepší popis Vyrovnávací úhrady
-        Dictionary<string, string>? kbEurMerchants = format == "kb"
-            ? CollectKbEurMerchants(lines, dataStart)
-            : null;
+        // Multiměnové delty: symbol → delta množství
+        var holdingDeltas = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        // Sdílený slovník assetů pro tento import (klíč = symbol)
+        var assetBySymbol = new Dictionary<string, Asset>(StringComparer.OrdinalIgnoreCase)
+            { [asset.Symbol] = asset };
+
+        // KB: two-pass přípravné operace
+        Dictionary<string, string>? kbEurMerchants = null;
+        HashSet<int>?               kbFxSkipLines  = null;
+        if (format == "kb")
+        {
+            kbEurMerchants = CollectKbEurMerchants(lines, dataStart);
+            kbFxSkipLines  = CollectKbFxConversionLines(lines, dataStart);
+        }
 
         for (int i = dataStart; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
             if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // KB: přeskoč EUR nákupy které jsou FX-konverze a EUR Vyrovnávací úhrady (kredity)
+            if (format == "kb")
+            {
+                if (kbFxSkipLines?.Contains(i) == true) continue;
+                if (IsKbEurSettlementCredit(line))       continue;
+            }
 
             result.TotalRows++;
 
@@ -125,11 +141,33 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
                 {
                     "revolut"    => ParseRevolutRow(line),
                     "trading212" => ParseTrading212Row(line),
-                    "kb"         => ParseKbRow(line, account.BaseCurrency, kbEurMerchants),
+                    "kb"         => ParseKbRow(line, kbEurMerchants),
                     _            => ParseGenericRow(line),
                 };
 
                 if (parsed is null) continue;   // prázdný / přeskočený řádek
+
+                // Vyber nebo vytvoř asset pro měnu tohoto řádku
+                string txSymbol = string.IsNullOrWhiteSpace(parsed.Currency)
+                    ? account.BaseCurrency
+                    : parsed.Currency;
+
+                if (!assetBySymbol.TryGetValue(txSymbol, out var txAsset))
+                {
+                    txAsset = await db.Assets.FirstOrDefaultAsync(a => a.Symbol == txSymbol, ct);
+                    if (txAsset is null)
+                    {
+                        txAsset = new Asset
+                        {
+                            Id        = Guid.NewGuid(),
+                            Symbol    = txSymbol,
+                            Name      = txSymbol,
+                            AssetType = AssetType.Fiat,
+                        };
+                        db.Assets.Add(txAsset);
+                    }
+                    assetBySymbol[txSymbol] = txAsset;
+                }
 
                 var tx = new Transaction
                 {
@@ -137,8 +175,8 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
                     AccountId     = accountId,
                     Date          = parsed.Date,
                     Type          = parsed.Type,
-                    AssetId       = asset.Id,
-                    Asset         = asset,
+                    AssetId       = txAsset.Id,
+                    Asset         = txAsset,
                     Quantity      = parsed.Amount,
                     PricePerUnit  = 1m,
                     Note          = parsed.Note,
@@ -146,8 +184,9 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
                 };
                 txsToAdd.Add(tx);
 
-                holdingDelta += parsed.Type == TransactionType.Deposit
-                    ? parsed.Amount : -parsed.Amount;
+                holdingDeltas.TryGetValue(txSymbol, out decimal prevDelta);
+                holdingDeltas[txSymbol] = prevDelta + (parsed.Type == TransactionType.Deposit
+                    ? parsed.Amount : -parsed.Amount);
 
                 result.SuccessCount++;
             }
@@ -164,25 +203,47 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         // Ulož všechny transakce najednou
         db.Transactions.AddRange(txsToAdd);
 
-        // Aktualizuj holding
-        var holding = account.Holdings.FirstOrDefault(h => h.AssetId == asset.Id);
-        if (holding is null)
+        // Aktualizuj holdingy pro všechny měny
+        foreach (var (symbol, delta) in holdingDeltas)
         {
-            holding = new Holding
+            if (!assetBySymbol.TryGetValue(symbol, out var hAsset)) continue;
+
+            var holding = account.Holdings.FirstOrDefault(h => h.AssetId == hAsset.Id);
+            if (holding is null)
             {
-                Id        = Guid.NewGuid(),
-                AccountId = accountId,
-                AssetId   = asset.Id,
-                Quantity  = 0m,
-                CostBasis = 0m,
-            };
-            db.Holdings.Add(holding);
+                holding = new Holding
+                {
+                    Id        = Guid.NewGuid(),
+                    AccountId = accountId,
+                    AssetId   = hAsset.Id,
+                    Quantity  = 0m,
+                    CostBasis = 0m,
+                };
+                db.Holdings.Add(holding);
+            }
+            // Pro hlavní měnu účtu: použij počáteční zůstatek z KB hlavičky
+            bool isBase = symbol.Equals(account.BaseCurrency, StringComparison.OrdinalIgnoreCase);
+            decimal baseQty = isBase && holding.Quantity == 0m && initialBalance > 0m
+                ? initialBalance : holding.Quantity;
+            holding.Quantity = Math.Max(0m, baseQty + delta);
         }
-        // Pokud je účet čerstvý (0) a CSV obsahuje počáteční zůstatek, použij ho jako základ
-        decimal baseQty = (holding.Quantity == 0m && initialBalance > 0m)
-            ? initialBalance
-            : holding.Quantity;
-        holding.Quantity = Math.Max(0m, baseQty + holdingDelta);
+
+        // Pro případ že nebyly žádné transakce ale je initialBalance — stále nastav holding
+        if (!holdingDeltas.ContainsKey(account.BaseCurrency) && initialBalance > 0m)
+        {
+            var mainHolding = account.Holdings.FirstOrDefault(h => h.AssetId == asset.Id);
+            if (mainHolding is null)
+            {
+                mainHolding = new Holding
+                {
+                    Id = Guid.NewGuid(), AccountId = accountId,
+                    AssetId = asset.Id, Quantity = 0m, CostBasis = 0m,
+                };
+                db.Holdings.Add(mainHolding);
+            }
+            if (mainHolding.Quantity == 0m)
+                mainHolding.Quantity = initialBalance;
+        }
 
         // Finalizuj batch
         batch.RowCount     = result.TotalRows;
@@ -196,9 +257,10 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
         await db.SaveChangesAsync(ct);
 
-        // Retroaktivně oprav PortfolioSnapshots z transakcí
+        // Retroaktivně oprav PortfolioSnapshots z transakcí (jen BaseCurrency transakce)
+        var baseTxs = txsToAdd.Where(t => t.AssetId == asset.Id).ToList();
         await RebuildSnapshotsFromTransactionsAsync(
-            accountId, account.UserId, asset.Id, txsToAdd, initialBalance, ct);
+            accountId, account.UserId, asset.Id, baseTxs, initialBalance, ct);
 
         // Snapshot pro dnešek (aktuální stav)
         await portfolio.TakeSnapshotAsync(accountId, ct);
@@ -292,7 +354,8 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
     }
 
     // ── Parsovaná řádka ─────────────────────────────────────────────
-    private record ParsedRow(DateTime Date, TransactionType Type, decimal Amount, string? Note);
+    /// <param name="Currency">Null = BaseCurrency účtu. Neprázdné = cizí měna (vytvoří se vlastní holding).</param>
+    private record ParsedRow(DateTime Date, TransactionType Type, decimal Amount, string? Note, string? Currency = null);
 
     // ── Generic: Date,Type,Amount[,Note] ────────────────────────────
     // Příklad: 2024-01-15,Deposit,5000,Výplata
@@ -391,7 +454,69 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         return result;
     }
 
-    private static ParsedRow? ParseKbRow(string line, string? accountCurrency = null,
+    /// <summary>
+    /// Identifikuje řádky KB CSV které jsou FX konverze:
+    /// EUR nákupy (např. STEAM -3.1 EUR) jež jsou okamžitě "spotřebovány" Vyrovnávací úhradou.
+    /// Tyto řádky se přeskočí — platba je zaznamenána přes CZK Vyrovnávací úhradu.
+    /// Zbylé EUR řádky (příchozí platby v EUR atd.) se importují normálně do EUR holdingu.
+    /// </summary>
+    private static HashSet<int> CollectKbFxConversionLines(string[] lines, int dataStart)
+    {
+        var result = new HashSet<int>();
+
+        // Sbírej Vyrovnávací úhrada EUR kredity (kladná EUR částka = banka vrací EUR zpět)
+        var settlements = new List<(decimal EurAmt, int SettleIdx)>();
+        for (int i = dataStart; i < lines.Length; i++)
+        {
+            var cols = SplitCsv(lines[i].Trim(), ';');
+            if (cols.Length < 14) continue;
+            if (!cols[5].Trim().Equals("EUR", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!cols[13].Trim().StartsWith("Vyrovn", StringComparison.OrdinalIgnoreCase)) continue;
+            string amtStr = cols[4].Trim();
+            decimal amt;
+            try { amt = ParseDecimal(amtStr); } catch { continue; }
+            if (amt <= 0) continue; // jen kredity
+            settlements.Add((Math.Round(amt, 2), i));
+        }
+
+        // Pro každý Vyrovnávací kredit najdi odpovídající EUR debet v okolí (±20 řádků)
+        foreach (var (eurAmt, settleIdx) in settlements)
+        {
+            int searchFrom = Math.Max(dataStart, settleIdx - 20);
+            int searchTo   = Math.Min(lines.Length - 1, settleIdx + 3);
+            for (int j = searchFrom; j <= searchTo; j++)
+            {
+                if (j == settleIdx) continue;
+                var cols = SplitCsv(lines[j].Trim(), ';');
+                if (cols.Length < 14) continue;
+                if (!cols[5].Trim().Equals("EUR", StringComparison.OrdinalIgnoreCase)) continue;
+                if (cols[13].Trim().StartsWith("Vyrovn", StringComparison.OrdinalIgnoreCase)) continue;
+                string amtStr = cols[4].Trim();
+                decimal amt;
+                try { amt = ParseDecimal(amtStr); } catch { continue; }
+                if (Math.Round(Math.Abs(amt), 2) == eurAmt)
+                {
+                    result.Add(j); // označen jako FX konverze — přeskočit
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>True pro EUR Vyrovnávací úhrada kredity (+EUR settlement řádky).</summary>
+    private static bool IsKbEurSettlementCredit(string line)
+    {
+        var cols = SplitCsv(line, ';');
+        if (cols.Length < 14) return false;
+        if (!cols[5].Trim().Equals("EUR", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!cols[13].Trim().StartsWith("Vyrovn", StringComparison.OrdinalIgnoreCase)) return false;
+        string amtStr = cols[4].Trim();
+        try { return ParseDecimal(amtStr) > 0; } catch { return false; }
+    }
+
+    private static ParsedRow? ParseKbRow(string line,
         Dictionary<string, string>? eurMerchants = null)
     {
         var cols = SplitCsv(line, ';');
@@ -402,11 +527,8 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         if (string.IsNullOrWhiteSpace(dateStr)) return null;
         DateTime date = ParseDate(dateStr);
 
-        // Col 5 = Mena — přeskoč řádky s jinou měnou než účet
+        // Col 5 = Mena (currency of this row)
         string rowCurrency = cols.Length > 5 ? cols[5].Trim() : "";
-        if (!string.IsNullOrEmpty(accountCurrency) && !string.IsNullOrEmpty(rowCurrency) &&
-            !string.Equals(rowCurrency, accountCurrency, StringComparison.OrdinalIgnoreCase))
-            return null;
 
         // Col 4 = Castka
         string amtStr = cols[4].Trim();
@@ -422,7 +544,8 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
         string? note = BuildKbNote(txType, name, message, rateStr, rowCurrency, amount, eurMerchants);
 
-        return new ParsedRow(date, type, Math.Abs(amount), note);
+        // Vrátíme currency = rowCurrency, aby import loop vytvořil správný holding
+        return new ParsedRow(date, type, Math.Abs(amount), note, rowCurrency.Length > 0 ? rowCurrency : null);
     }
 
     /// <summary>

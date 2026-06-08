@@ -564,6 +564,13 @@
                 </StackPanel>
             </Border>
 
+            <!-- ── Přidat transakci ──────────────────────────── -->
+            <Button Command="{Binding OpenNewTxDialogCommand}"
+                    Classes="accent"
+                    HorizontalAlignment="Right"
+                    Padding="16 9" CornerRadius="8"
+                    Content="+ Přidat transakci"/>
+
         </StackPanel>
     </StackPanel>
 

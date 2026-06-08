@@ -1,6 +1,8 @@
 using AssetMap.Core.Models;
 using AssetMap.Core.Services;
 using AssetMap.Database;
+using AssetMap.Entities;
+using AssetMap.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +10,7 @@ namespace AssetMap.API.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
-public class AccountsController(IAccountService accounts, IImportService importer, AppDbContext db) : ControllerBase
+public class AccountsController(IAccountService accounts, IImportService importer, AppDbContext db, IPortfolioService portfolio) : ControllerBase
 {
     /// <summary>Vrátí ID přihlášeného uživatele z kontextu (nastaven ApiKeyMiddleware).</summary>
     private Guid UserId => HttpContext.Items["UserId"] is Guid id ? id
@@ -93,5 +95,121 @@ public class AccountsController(IAccountService accounts, IImportService importe
         tx.Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Přidá manuální transakci k účtu.
+    /// Typ Transfer vytvoří dvě transakce: Withdrawal na zdrojovém + Deposit na cílovém účtu.
+    /// </summary>
+    [HttpPost("{id:guid}/transactions")]
+    public async Task<IActionResult> AddTransaction(
+        Guid id, [FromBody] CreateTransactionRequest req, CancellationToken ct)
+    {
+        // Načti zdrojový účet
+        var srcAccount = await db.Accounts
+            .Include(a => a.Holdings).ThenInclude(h => h.Asset)
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (srcAccount is null) return NotFound("Zdrojový účet nenalezen.");
+
+        // Asset pro BaseCurrency
+        var srcAsset = await db.Assets.FirstOrDefaultAsync(a => a.Symbol == srcAccount.BaseCurrency, ct);
+        if (srcAsset is null) return BadRequest("Asset pro BaseCurrency nenalezen.");
+
+        var now = DateTime.UtcNow;
+        var txDate = req.Date == default ? now : DateTime.SpecifyKind(req.Date, DateTimeKind.Utc);
+        var txsToSave = new List<Transaction>();
+
+        if (req.ToAccountId is Guid toId)
+        {
+            // ── Transfer: výběr + vklad ───────────────────────────────
+            var dstAccount = await db.Accounts
+                .Include(a => a.Holdings).ThenInclude(h => h.Asset)
+                .FirstOrDefaultAsync(a => a.Id == toId, ct);
+            if (dstAccount is null) return NotFound("Cílový účet nenalezen.");
+            var dstAsset = await db.Assets.FirstOrDefaultAsync(a => a.Symbol == dstAccount.BaseCurrency, ct);
+            if (dstAsset is null) return BadRequest("Asset cílového účtu nenalezen.");
+
+            string srcName = srcAccount.Name ?? "?";
+            string dstName = dstAccount.Name ?? "?";
+
+            var withdrawal = new Transaction
+            {
+                Id           = Guid.NewGuid(),
+                AccountId    = id,
+                Date         = txDate,
+                Type         = TransactionType.Withdrawal,
+                AssetId      = srcAsset.Id,
+                Quantity     = (decimal)req.Amount,
+                PricePerUnit = 1m,
+                Fee          = req.Fee > 0 ? (decimal)req.Fee : null,
+                ToAccountId  = toId,
+                Note         = req.Note ?? $"Převod → {dstName}",
+            };
+            var deposit = new Transaction
+            {
+                Id             = Guid.NewGuid(),
+                AccountId      = toId,
+                Date           = txDate,
+                Type           = TransactionType.Deposit,
+                AssetId        = dstAsset.Id,
+                Quantity       = (decimal)req.Amount,
+                PricePerUnit   = 1m,
+                FromAccountId  = id,
+                Note           = req.Note ?? $"Převod ← {srcName}",
+            };
+            txsToSave.Add(withdrawal);
+            txsToSave.Add(deposit);
+
+            // Aktualizuj holdingy
+            AdjustHolding(db, srcAccount, srcAsset, -(decimal)req.Amount - (decimal)req.Fee);
+            AdjustHolding(db, dstAccount, dstAsset, (decimal)req.Amount);
+        }
+        else
+        {
+            // ── Příchozí / Odchozí ────────────────────────────────────
+            decimal sign = req.Type == TransactionType.Deposit ? 1m : -1m;
+
+            var tx = new Transaction
+            {
+                Id           = Guid.NewGuid(),
+                AccountId    = id,
+                Date         = txDate,
+                Type         = req.Type,
+                AssetId      = srcAsset.Id,
+                Quantity     = (decimal)req.Amount,
+                PricePerUnit = 1m,
+                Fee          = req.Fee > 0 ? (decimal)req.Fee : null,
+                Note         = req.Note,
+            };
+            txsToSave.Add(tx);
+
+            AdjustHolding(db, srcAccount, srcAsset, sign * (decimal)req.Amount - (decimal)req.Fee);
+        }
+
+        db.Transactions.AddRange(txsToSave);
+        await db.SaveChangesAsync(ct);
+
+        // Snapshot dnešního stavu
+        await portfolio.TakeSnapshotAsync(id, ct);
+
+        return Ok(txsToSave.Select(t => t.Id).ToArray());
+    }
+
+    private static void AdjustHolding(AppDbContext db, Account account, Asset asset, decimal delta)
+    {
+        var h = account.Holdings.FirstOrDefault(h => h.AssetId == asset.Id);
+        if (h is null)
+        {
+            h = new AssetMap.Entities.Holding
+            {
+                Id        = Guid.NewGuid(),
+                AccountId = account.Id,
+                AssetId   = asset.Id,
+                Quantity  = 0m,
+                CostBasis = 0m,
+            };
+            db.Holdings.Add(h);
+        }
+        h.Quantity = Math.Max(0m, h.Quantity + delta);
     }
 }

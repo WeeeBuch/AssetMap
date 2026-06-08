@@ -465,6 +465,44 @@ public static class AccountRepo
         catch { return false; }
     }
 
+    // ── POST /api/accounts/{id}/transactions ─────────────
+    /// <summary>
+    /// Přidá manuální transakci. Typ Transfer vytvoří dvě transakce (výběr + vklad).
+    /// Vrátí true pokud server odpověděl úspěšně.
+    /// </summary>
+    public static async Task<bool> AddManualTransactionAsync(
+        Guid accountId,
+        AssetMap.Entities.Enums.TransactionType type,
+        double amount,
+        double fee,
+        DateTime date,
+        string? note,
+        Guid? toAccountId = null,
+        Guid? fromAccountId = null)
+    {
+        try
+        {
+            ApplyAuthHeader();
+            var payload = new
+            {
+                accountId,
+                type         = (int)type,
+                amount,
+                fee,
+                date,
+                note,
+                toAccountId,
+                fromAccountId,
+            };
+            var json    = System.Text.Json.JsonSerializer.Serialize(payload, _json);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var resp    = await _http.PostAsync(
+                $"{_serverUrl.TrimEnd('/')}/api/accounts/{accountId}/transactions", content);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     // ── Parsování počátečního zůstatku z CSV ──────────────
     /// <summary>
     /// Pokusí se přečíst počáteční zůstatek z CSV výpisu.

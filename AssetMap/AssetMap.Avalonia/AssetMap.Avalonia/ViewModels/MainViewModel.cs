@@ -132,6 +132,10 @@ public partial class MainViewModel : ViewModelBase
         AssetsVM       = new AssetsViewModel();
         BuildDashboard();
 
+        // Propoj TransactionsVM "+" tlačítko s AccountsVM dialogem
+        AccountsViewModel.OpenTxDialogRequest = () =>
+            Dispatcher.UIThread.Post(() => AccountsVM.OpenNewTxDialogCommand.Execute(null));
+
         AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
 
         // ── Offline / online stav ─────────────────────────────

@@ -110,6 +110,130 @@ public partial class AccountsViewModel : ViewModelBase
             await AccountRepo.RefreshAsync();   // reload so Description updates
     }
 
+    // ── Nová manuální transakce — DIALOG ─────────────────────────
+
+    /// <summary>Otevření dialogu přidat transakci z jiných VM (TransactionsVM).</summary>
+    internal static Action? OpenTxDialogRequest;
+
+    // Dialog open/close
+    [ObservableProperty] private bool _isNewTxDialogOpen = false;
+
+    [RelayCommand]
+    private void OpenNewTxDialog()
+    {
+        NewTxDate             = DateTimeOffset.Now;
+        NewTxAmount           = "";
+        NewTxFee              = "";
+        NewTxNote             = "";
+        NewTxTransferTarget   = null;
+        NewTxMode             = NewTxMode.In;
+        // Defaultní zdrojový účet = aktuálně vybraný (nebo první v listu)
+        NewTxSourceAccount    = SelectedAccount ?? Accounts.FirstOrDefault();
+        IsNewTxDialogOpen     = true;
+    }
+
+    [RelayCommand]
+    private void CloseNewTxDialog()
+    {
+        IsNewTxDialogOpen = false;
+    }
+
+    // Zdrojový účet (In/Out) — předvyplněný z výběru nebo ComboBox
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NewTxSourceAccountName))]
+    [NotifyPropertyChangedFor(nameof(NewTxSourceBalance))]
+    private AccountCardViewModel? _newTxSourceAccount;
+
+    public string NewTxSourceAccountName => NewTxSourceAccount?.AccountName ?? "(vyberte účet)";
+    public string NewTxSourceBalance     => NewTxSourceAccount?.BaseAmount  ?? "";
+
+    // Režim transakce
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewTxIn))]
+    [NotifyPropertyChangedFor(nameof(IsNewTxOut))]
+    [NotifyPropertyChangedFor(nameof(IsNewTxTransfer))]
+    private NewTxMode _newTxMode = NewTxMode.In;
+
+    public bool IsNewTxIn       => NewTxMode == NewTxMode.In;
+    public bool IsNewTxOut      => NewTxMode == NewTxMode.Out;
+    public bool IsNewTxTransfer => NewTxMode == NewTxMode.Transfer;
+
+    [RelayCommand] private void SetNewTxIn()       => NewTxMode = NewTxMode.In;
+    [RelayCommand] private void SetNewTxOut()      => NewTxMode = NewTxMode.Out;
+    [RelayCommand] private void SetNewTxTransfer() => NewTxMode = NewTxMode.Transfer;
+
+    // Pole formuláře
+    [ObservableProperty] private string _newTxAmount = "";
+    [ObservableProperty] private string _newTxFee    = "";
+    [ObservableProperty] private string _newTxNote   = "";
+    [ObservableProperty] private DateTimeOffset _newTxDate = DateTimeOffset.Now;
+
+    // Cílový účet pro Transfer
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NewTxTargetBalance))]
+    private AccountCardViewModel? _newTxTransferTarget;
+
+    public string NewTxTargetBalance => NewTxTransferTarget?.BaseAmount ?? "";
+
+    [ObservableProperty] private bool _isNewTxSaving = false;
+
+    [RelayCommand]
+    private async Task SaveNewTransactionAsync()
+    {
+        if (NewTxSourceAccount is null) return;
+        if (!decimal.TryParse(NewTxAmount.Replace(',', '.'),
+            System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out decimal amount) || amount <= 0)
+            return;
+
+        decimal.TryParse(NewTxFee.Replace(',', '.'),
+            System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out decimal fee);
+
+        IsNewTxSaving = true;
+        try
+        {
+            var accountId = NewTxSourceAccount.AccountId;
+            var date      = NewTxDate.UtcDateTime;
+            var note      = string.IsNullOrWhiteSpace(NewTxNote) ? null : NewTxNote.Trim();
+
+            bool ok;
+            if (NewTxMode == NewTxMode.Transfer)
+            {
+                if (NewTxTransferTarget is null) return;
+                ok = await AccountRepo.AddManualTransactionAsync(
+                    accountId,
+                    AssetMap.Entities.Enums.TransactionType.Withdrawal,
+                    (double)amount, (double)fee, date, note,
+                    toAccountId: NewTxTransferTarget.AccountId);
+            }
+            else
+            {
+                var txType = NewTxMode == NewTxMode.In
+                    ? AssetMap.Entities.Enums.TransactionType.Deposit
+                    : AssetMap.Entities.Enums.TransactionType.Withdrawal;
+                ok = await AccountRepo.AddManualTransactionAsync(
+                    accountId, txType, (double)amount, (double)fee, date, note);
+            }
+
+            if (ok)
+            {
+                IsNewTxDialogOpen     = false;
+                NewTxAmount           = "";
+                NewTxFee              = "";
+                NewTxNote             = "";
+                NewTxDate             = DateTimeOffset.Now;
+                NewTxTransferTarget   = null;
+                await AccountRepo.RefreshAsync();
+                LoadAccounts(AccountRepo.GetAll());
+            }
+        }
+        finally
+        {
+            IsNewTxSaving = false;
+        }
+    }
+
     // ── Pending CSV pro nový účet ─────────────────────────────
     private string?  _pendingCsvFileName;
     private byte[]?  _pendingCsvBytes;

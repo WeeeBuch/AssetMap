@@ -56,9 +56,14 @@ public class UpdateAccountRequest
 
 public class CreateTransactionRequest
 {
-    public Guid            AccountId  { get; set; }
-    public TransactionType Type       { get; set; }
-    public double          Amount     { get; set; }
-    public DateTime        Date       { get; set; }
-    public string?         Note       { get; set; }
+    public Guid            AccountId    { get; set; }
+    public TransactionType Type         { get; set; }
+    public double          Amount       { get; set; }
+    public double          Fee          { get; set; }
+    public DateTime        Date         { get; set; }
+    public string?         Note         { get; set; }
+    /// <summary>Pro Transfer: ID cílového účtu.</summary>
+    public Guid?           ToAccountId  { get; set; }
+    /// <summary>Pro Transfer: ID zdrojového účtu (null = aktuální accountId).</summary>
+    public Guid?           FromAccountId { get; set; }
 }

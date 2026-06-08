@@ -5,6 +5,9 @@ namespace AssetMap.Avalonia.ViewModels;
 /// <summary>Časové okno zobrazované v grafech.</summary>
 public enum ChartPeriod { D1, D7, M1, M3, Y1, All }
 
+/// <summary>Typ nové transakce v editačním panelu.</summary>
+public enum NewTxMode { In, Out, Transfer }
+
 /// <summary>Jeden výseč koláčového grafu.</summary>
 public class PieSliceData
 {

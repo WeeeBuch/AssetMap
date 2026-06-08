@@ -179,20 +179,8 @@ public partial class TransactionsViewModel : ViewModelBase
 
     [RelayCommand] private void OpenAddTransaction()
     {
-        // Znovu načíst účty z cache
-        TxAccountOptions.Clear();
-        _txAccountIds.Clear();
-        foreach (var d in AccountRepo.GetAll())
-        {
-            TxAccountOptions.Add(d.Account.Name);
-            _txAccountIds.Add(d.Account.Id);
-        }
-        TxAccountIndex = 0;
-        TxIsDeposit    = true;
-        TxAmountText   = "";
-        TxDateText     = DateTime.Today.ToString("dd.MM.yyyy");
-        TxNoteText     = "";
-        IsTxDialogOpen = true;
+        // Deleguje na AccountsVM dialog (nastaveno v MainViewModel)
+        AccountsViewModel.OpenTxDialogRequest?.Invoke();
     }
 
     [RelayCommand] private void CancelTx() => IsTxDialogOpen = false;
