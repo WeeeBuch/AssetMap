@@ -35,6 +35,22 @@ public static class AccountRepo
         UsdToDisplay    = usdToDisplay;
     }
 
+    // ── Kurzy pro symboly ─────────────────────────────────────
+    /// <summary>Kurz 1 native unit → USD pro daný symbol aktiva.</summary>
+    public static double UsdRateForSymbol(string symbol) => symbol switch
+    {
+        "Kč" or "CZK" => 0.0432,
+        "EUR"          => 1.08,
+        "USD"          => 1.0,
+        "GBP"          => 1.256,
+        "CHF"          => 1.137,
+        "BTC"          => 83_000,
+        "ETH"          => 3_200,
+        "SOL"          => 170,
+        "BNB"          => 600,
+        _              => 1.0,
+    };
+
     // ── API volání ────────────────────────────────────────────
     /// <summary>
     /// Načte data ze serveru a uloží do cache.
@@ -57,10 +73,78 @@ public static class AccountRepo
         return _cache;
     }
 
+    // ── Přidat účet (mock — bez API) ─────────────────────────
+    /// <summary>
+    /// Přidá nový účet přímo do cache.
+    /// TODO: nahradit POST /api/accounts a reload dat.
+    /// </summary>
+    public static void AddAccount(
+        string      name,
+        string      institution,
+        AccountType type,
+        string      assetSymbol,
+        double      startBalance,
+        double      usdRateOverride = 0,
+        string?     iconColorHex    = null)
+    {
+        double usdRate = usdRateOverride > 0 ? usdRateOverride : UsdRateForSymbol(assetSymbol);
+
+        var data = new AccountData
+        {
+            Account = new Account
+            {
+                Id          = Guid.NewGuid(),
+                UserId      = _mockUserId,
+                Name        = name,
+                Institution = institution,
+                AccountType = type,
+            },
+            IconColorHex       = iconColorHex,
+            BaseCurrency       = assetSymbol,
+            CurrentBalance     = startBalance,
+            ConvertedCurrency  = DisplayCurrency,
+            ConvertedBalance   = startBalance * usdRate * UsdToDisplay,
+            BalanceHistory     = Enumerable.Repeat(startBalance, 365).ToArray(),
+            RecentTransactions = [],
+        };
+
+        _cache.Insert(0, data);
+        DataRefreshed?.Invoke();
+    }
+
+    /// <summary>Aktualizuje metadata účtu (jméno, instituce, typ, barva). Zůstatek/historii nemění.</summary>
+    public static void UpdateAccount(
+        Guid        accountId,
+        string      name,
+        string      institution,
+        AccountType type,
+        string?     iconColorHex)
+    {
+        int idx = _cache.FindIndex(d => d.Account.Id == accountId);
+        if (idx < 0) return;
+
+        var old = _cache[idx];
+        old.Account.Name        = name;
+        old.Account.Institution = institution;
+        old.Account.AccountType = type;
+        _cache[idx] = old with { IconColorHex = iconColorHex };
+
+        DataRefreshed?.Invoke();
+    }
+
+    /// <summary>Odstraní účet z cache.</summary>
+    public static void RemoveAccount(Guid accountId)
+    {
+        _cache.RemoveAll(d => d.Account.Id == accountId);
+        DataRefreshed?.Invoke();
+    }
+
+    // ── Mock user ID ──────────────────────────────────────────
+    private static readonly Guid _mockUserId =
+        Guid.Parse("00000000-0000-0000-0000-000000000001");
+
 #if DEBUG
     // ── Mock data ─────────────────────────────────────────────
-    private static readonly Guid _userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
     private static readonly Asset AsstCzk = new()
     {
         Id = Guid.Parse("00000000-0000-0000-0000-000000000010"),
@@ -80,7 +164,7 @@ public static class AccountRepo
     private static List<AccountData> GenerateMock() =>
     [
         // conversionRate = native → USD
-        // CZK: 1 CZK = 0.0432 USD  (25.20 CZK/EUR × 1/1.08 USD/EUR ≈ 0.0432)
+        // CZK: 1 CZK ≈ 0.0432 USD
         Build("Běžný účet",   "Česká spořitelna", AccountType.Bank,         AsstCzk,
               startBalance: 42_500,  conversionRateToUsd: 0.0432, seed: 1),
 
@@ -91,7 +175,7 @@ public static class AccountRepo
         Build("Revolut",      "Revolut",           AccountType.Bank,         AsstEur,
               startBalance: 2_400,   conversionRateToUsd: 1.08,   seed: 3),
 
-        // BTC cena v USD (CoinGecko/Bitstamp vrací USD)
+        // BTC: 1 BTC = 83 000 USD  (CoinGecko/Bitstamp vrací USD)
         Build("Bitstamp",     "Bitcoin",           AccountType.CryptoWallet, AsstBtc,
               startBalance: 0.85,    conversionRateToUsd: 83_000, seed: 4),
     ];
@@ -143,18 +227,17 @@ public static class AccountRepo
             Account = new Account
             {
                 Id           = accountId,
-                UserId       = _userId,
+                UserId       = _mockUserId,
                 Name         = name,
                 Institution  = institution,
                 AccountType  = type,
                 Transactions = transactions,
             },
-            BaseCurrency      = asset.Symbol,
-            CurrentBalance    = final,
-            // ConvertedBalance = hodnota v DisplayCurrency
-            ConvertedCurrency = DisplayCurrency,
-            ConvertedBalance  = final * conversionRateToUsd * UsdToDisplay,
-            BalanceHistory    = history,
+            BaseCurrency       = asset.Symbol,
+            CurrentBalance     = final,
+            ConvertedCurrency  = DisplayCurrency,
+            ConvertedBalance   = final * conversionRateToUsd * UsdToDisplay,
+            BalanceHistory     = history,
             RecentTransactions = [.. transactions.OrderByDescending(t => t.Date).Take(25)],
         };
     }

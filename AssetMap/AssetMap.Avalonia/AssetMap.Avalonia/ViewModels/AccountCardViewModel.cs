@@ -23,6 +23,11 @@ public record TransactionDisplayItem(
 // ── Karta účtu ────────────────────────────────────────────────
 public partial class AccountCardViewModel : ViewModelBase
 {
+    // Identifikace (pro edit/delete)
+    public Guid        AccountId        { get; init; }
+    public AccountType AccountTypeValue { get; init; }
+    public string?     IconColorHex     { get; init; }
+
     // Zobrazovací data
     public string AccountName  { get; init; } = "";
     public string Institution  { get; init; } = "";
@@ -61,7 +66,9 @@ public partial class AccountCardViewModel : ViewModelBase
     {
         var acc      = data.Account;
         var history  = data.BalanceHistory;
-        var iconBrush = BrushFor(acc.AccountType, acc.Name);
+        var iconBrush = !string.IsNullOrEmpty(data.IconColorHex)
+            ? (IBrush)new SolidColorBrush(Color.Parse(data.IconColorHex))
+            : BrushFor(acc.AccountType, acc.Name);
 
         // Konverzní kurz = ConvertedBalance / CurrentBalance (např. CZK→EUR)
         double conversionRate = data.ConvertedBalance.HasValue && data.CurrentBalance > 0
@@ -106,6 +113,9 @@ public partial class AccountCardViewModel : ViewModelBase
 
         return new AccountCardViewModel
         {
+            AccountId         = acc.Id,
+            AccountTypeValue  = acc.AccountType,
+            IconColorHex      = data.IconColorHex,
             AccountName       = acc.Name,
             Institution       = acc.Institution ?? "",
             IconLetter        = acc.Name.Length > 0 ? acc.Name[0].ToString().ToUpper() : "?",

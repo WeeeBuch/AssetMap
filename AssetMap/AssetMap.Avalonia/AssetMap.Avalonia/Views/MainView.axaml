@@ -88,7 +88,8 @@
                         <TextBlock Text="Účty"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12">Vše →</Button>
+                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12"
+                                Command="{Binding NavigateToAccountsCommand}">Vše →</Button>
                     </Grid>
 
                     <ItemsControl ItemsSource="{Binding AccountsVM.Accounts}">
@@ -144,7 +145,8 @@
                         <TextBlock Text="Poslední transakce"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"/>
-                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12">Vše →</Button>
+                        <Button Grid.Column="1" Classes="ghost" Padding="6 3" FontSize="12"
+                                Command="{Binding NavigateToTransactionsCommand}">Vše →</Button>
                     </Grid>
 
                     <Border Classes="separator" Margin="0 0 0 4"/>

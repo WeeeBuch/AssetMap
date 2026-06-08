@@ -18,6 +18,9 @@ public record AccountData
     public          double?  ConvertedBalance  { get; init; }
     public          string?  ConvertedCurrency { get; init; }
 
+    /// <summary>Uživatelská barva ikony (hex, např. "#4263EB"). Null = automatická.</summary>
+    public          string?  IconColorHex      { get; init; }
+
     // 60 denních hodnot vzestupně (index 0 = nejstarší)
     public required double[] BalanceHistory    { get; init; }
 

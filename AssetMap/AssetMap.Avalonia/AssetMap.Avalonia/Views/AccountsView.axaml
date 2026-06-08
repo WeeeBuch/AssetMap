@@ -8,7 +8,7 @@
         <vm:AccountsViewModel/>
     </Design.DataContext>
 
-
+<Grid>
 <StackPanel Spacing="0">
 
         <!-- ══════════════════════════════════
@@ -287,7 +287,7 @@
                     IsVisible="{Binding HasSelectedAccount}">
 
             <!-- Hlavička detailu -->
-            <Grid ColumnDefinitions="*,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Text="{Binding SelectedAccount.AccountName}"
                                FontSize="17" FontWeight="SemiBold"
@@ -313,14 +313,37 @@
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
 
-                <!-- Zavřít detail -->
+                <!-- Upravit -->
                 <Button Grid.Column="2"
+                        Classes="ghost"
+                        Command="{Binding OpenEditAccountCommand}"
+                        VerticalAlignment="Top"
+                        Width="30" Height="30" Padding="0" CornerRadius="8"
+                        ToolTip.Tip="Upravit účet"
+                        Margin="0 0 4 0">
+                    <TextBlock Text="✏" FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- Smazat -->
+                <Button Grid.Column="3"
+                        Classes="ghost"
+                        Command="{Binding DeleteAccountCommand}"
+                        VerticalAlignment="Top"
+                        Width="30" Height="30" Padding="0" CornerRadius="8"
+                        ToolTip.Tip="Smazat účet"
+                        Margin="0 0 4 0">
+                    <TextBlock Text="🗑" FontSize="13"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- Zavřít detail -->
+                <Button Grid.Column="4"
                         Classes="ghost"
                         Command="{Binding CloseDetailCommand}"
                         VerticalAlignment="Top"
-                        Width="30" Height="30"
-                        Padding="0"
-                        CornerRadius="8"
+                        Width="30" Height="30" Padding="0" CornerRadius="8"
                         ToolTip.Tip="Zavřít">
                     <TextBlock Text="✕"
                                FontSize="13"
@@ -427,4 +450,7 @@
 
         </StackPanel>
     </StackPanel>
+
+
+</Grid>
 </UserControl>
