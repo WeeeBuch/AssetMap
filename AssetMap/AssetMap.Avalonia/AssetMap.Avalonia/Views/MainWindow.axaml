@@ -424,7 +424,7 @@
                                            Foreground="{DynamicResource BrushTextSecondary}"
                                            Margin="0 0 0 5"/>
                                 <TextBox Text="{Binding AddAssetText}"
-                                         PlaceholderText="např. BTC, USDT, ETH, CZK, EUR…"
+                                         PlaceholderText="{Binding AddAssetPlaceholder}"
                                          Margin="0 0 0 4"/>
 
                                 <!-- Status hledání -->
@@ -441,10 +441,25 @@
                                     <TextBlock Text="{Binding AddAssetFoundName}"
                                                FontSize="11" Foreground="{DynamicResource BrushSuccess}"/>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 4"
                                             IsVisible="{Binding AddIsAssetNotFound}">
-                                    <TextBlock Text="✗ Aktivum nenalezeno — zkontroluj symbol (např. USDT, BTC)"
-                                               FontSize="11" Foreground="{DynamicResource BrushDanger}"/>
+                                    <TextBlock Text="✗ Nenalezeno na CoinGecko (krypto). Akcie/ETF? Zadej cenu v USD ručně:"
+                                               FontSize="11" Foreground="{DynamicResource BrushDanger}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <!-- Ruční cena (záloha pro akcie / ETF) -->
+                                <StackPanel IsVisible="{Binding AddShowManualPrice}" Margin="0 0 0 8">
+                                    <TextBox Text="{Binding AddManualPriceText}"
+                                             PlaceholderText="Cena v USD, např. 192.50"
+                                             Margin="0 4 0 0"/>
+                                </StackPanel>
+                                <!-- Indikátor ruční ceny (Manual stav) -->
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
+                                            IsVisible="{Binding AddIsAssetManual}">
+                                    <TextBlock Text="✓" FontSize="11" FontWeight="Bold"
+                                               Foreground="{DynamicResource BrushSuccess}"/>
+                                    <TextBlock Text="{Binding AddAssetFoundName}"
+                                               FontSize="11" Foreground="{DynamicResource BrushSuccess}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0 0 0 12"
                                             IsVisible="{Binding AddIsAssetError}">
@@ -477,6 +492,127 @@
                                         Command="{Binding ConfirmAddAccountCommand}"
                                         IsEnabled="{Binding AddCanConfirm}"
                                         Content="{Binding AddConfirmButtonText}"
+                                        Padding="20 9"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+                </Panel>
+            </Panel>
+
+            <!-- ══════════════════════════════════
+                 MODAL — PŘIDAT TRANSAKCI
+                 Viewport-fixed: mimo ScrollViewer
+                 ══════════════════════════════════ -->
+            <Panel Grid.Row="0" Grid.RowSpan="2"
+                   IsVisible="{Binding TransactionsVM.IsTxDialogOpen}">
+                <Panel DataContext="{Binding TransactionsVM}"
+                       x:DataType="vm:TransactionsViewModel">
+
+                    <!-- Backdrop -->
+                    <Border Background="#B2000000"/>
+
+                    <!-- Dialog card -->
+                    <Border Width="440"
+                            CornerRadius="14"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1"
+                            Padding="28 24"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            BoxShadow="0 12 48 4 #70000000">
+                        <StackPanel Spacing="0">
+
+                            <!-- Hlavička -->
+                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 22">
+                                <TextBlock Grid.Column="0"
+                                           Text="Přidat transakci"
+                                           FontSize="17" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Classes="ghost"
+                                        Command="{Binding CancelTxCommand}"
+                                        Width="30" Height="30" Padding="0" CornerRadius="8">
+                                    <TextBlock Text="✕" FontSize="13"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+                            <!-- ── Účet ─── -->
+                            <TextBlock Text="Účet *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <ComboBox ItemsSource="{Binding TxAccountOptions}"
+                                      SelectedIndex="{Binding TxAccountIndex}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0 0 0 16"/>
+
+                            <!-- ── Typ transakce ─── -->
+                            <TextBlock Text="Typ"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 8"/>
+                            <Border CornerRadius="8"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    Padding="3"
+                                    HorizontalAlignment="Left"
+                                    Margin="0 0 0 16">
+                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                    <Button Classes="seg" Classes.on="{Binding TxIsDeposit}"
+                                            Command="{Binding SetTxDepositCommand}"
+                                            Content="↓ Příchozí"/>
+                                    <Button Classes="seg" Classes.on="{Binding TxIsWithdrawal}"
+                                            Command="{Binding SetTxWithdrawalCommand}"
+                                            Content="↑ Odchozí"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ── Částka ─── -->
+                            <TextBlock Text="Částka *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxAmountText}"
+                                     PlaceholderText="0,00"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Datum ─── -->
+                            <TextBlock Text="Datum *"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxDateText}"
+                                     PlaceholderText="dd.MM.yyyy"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Poznámka ─── -->
+                            <TextBlock Text="Poznámka"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Margin="0 0 0 5"/>
+                            <TextBox Text="{Binding TxNoteText}"
+                                     PlaceholderText="volitelné"
+                                     Margin="0 0 0 16"/>
+
+                            <!-- ── Oddělovač ─── -->
+                            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0 4 0 16"/>
+
+                            <!-- ── Akční tlačítka ─── -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                                <Button Classes="secondary"
+                                        Command="{Binding CancelTxCommand}"
+                                        Content="Zrušit"
+                                        Padding="20 9"/>
+                                <Button Classes="primary"
+                                        Command="{Binding ConfirmTxCommand}"
+                                        IsEnabled="{Binding TxCanConfirm}"
+                                        Content="Přidat transakci"
                                         Padding="20 9"/>
                             </StackPanel>
 

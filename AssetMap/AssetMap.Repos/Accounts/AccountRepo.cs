@@ -139,6 +139,63 @@ public static class AccountRepo
         DataRefreshed?.Invoke();
     }
 
+    /// <summary>
+    /// Přidá transakci k účtu a aktualizuje zůstatek.
+    /// TODO: nahradit POST /api/transactions.
+    /// </summary>
+    public static void AddTransaction(
+        Guid            accountId,
+        TransactionType type,
+        double          amount,
+        DateTime        date,
+        string?         note = null)
+    {
+        int idx = _cache.FindIndex(d => d.Account.Id == accountId);
+        if (idx < 0) return;
+
+        var data  = _cache[idx];
+
+        // Recyklovat existující Asset, nebo vytvořit dummy
+        var asset = data.RecentTransactions.Count > 0
+            ? data.RecentTransactions[0].Asset
+            : new Asset
+              {
+                  Id        = Guid.NewGuid(),
+                  Symbol    = data.BaseCurrency,
+                  Name      = data.BaseCurrency,
+                  AssetType = AssetType.Fiat,
+              };
+
+        var tx = new Transaction
+        {
+            Id           = Guid.NewGuid(),
+            AccountId    = accountId,
+            Date         = date,
+            Type         = type,
+            AssetId      = asset.Id,
+            Asset        = asset,
+            Quantity     = (decimal)amount,
+            PricePerUnit = 1m,
+            Note         = note,
+        };
+
+        bool   isDeposit  = type == TransactionType.Deposit;
+        double newBalance = Math.Max(0, data.CurrentBalance + (isDeposit ? amount : -amount));
+        double usdRate    = UsdRateForSymbol(data.BaseCurrency);
+
+        var txList = new List<Transaction> { tx };
+        txList.AddRange(data.RecentTransactions);
+
+        _cache[idx] = data with
+        {
+            CurrentBalance     = newBalance,
+            ConvertedBalance   = newBalance * usdRate * UsdToDisplay,
+            RecentTransactions = txList.Take(25).ToList(),
+        };
+
+        DataRefreshed?.Invoke();
+    }
+
     // ── Mock user ID ──────────────────────────────────────────
     private static readonly Guid _mockUserId =
         Guid.Parse("00000000-0000-0000-0000-000000000001");

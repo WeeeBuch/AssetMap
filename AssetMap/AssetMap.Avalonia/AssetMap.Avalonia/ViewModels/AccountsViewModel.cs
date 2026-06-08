@@ -15,7 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AssetMap.Avalonia.ViewModels;
 
-public enum AssetSearchStatus { None, Searching, Found, NotFound, Error }
+public enum AssetSearchStatus { None, Searching, Found, NotFound, Error, Manual }
 
 public partial class AccountsViewModel : ViewModelBase
 {
@@ -190,6 +190,7 @@ public partial class AccountsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(AddIsTypeCrypto))]
     [NotifyPropertyChangedFor(nameof(AddIsTypeBrokerage))]
     [NotifyPropertyChangedFor(nameof(AddIsTypeCash))]
+    [NotifyPropertyChangedFor(nameof(AddAssetPlaceholder))]
     private int _addTypeIndex = 0;
 
     public bool AddIsTypeBank      => AddTypeIndex == 0;
@@ -201,6 +202,21 @@ public partial class AccountsViewModel : ViewModelBase
     [RelayCommand] private void AddSetTypeCrypto()    => AddTypeIndex = 1;
     [RelayCommand] private void AddSetTypeBrokerage() => AddTypeIndex = 2;
     [RelayCommand] private void AddSetTypeCash()      => AddTypeIndex = 3;
+
+    partial void OnAddTypeIndexChanged(int value)
+    {
+        // Při změně typu znovu ověřit aktuální symbol
+        AddManualPriceText = "";
+        TriggerAssetSearch(AddAssetText.Trim());
+    }
+
+    public string AddAssetPlaceholder => AddTypeIndex switch
+    {
+        0 or 3 => "CZK, EUR, USD, GBP, CHF…",
+        1      => "BTC, ETH, USDT, SOL…",
+        2      => "AAPL, MSFT, TSLA, SPY…",
+        _      => "Symbol aktiva",
+    };
 
     // ── Výběr barvy ───────────────────────────────────────────
     public static string[] AddColorOptions { get; } =
@@ -249,6 +265,8 @@ public partial class AccountsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(AddIsAssetFound))]
     [NotifyPropertyChangedFor(nameof(AddIsAssetNotFound))]
     [NotifyPropertyChangedFor(nameof(AddIsAssetError))]
+    [NotifyPropertyChangedFor(nameof(AddIsAssetManual))]
+    [NotifyPropertyChangedFor(nameof(AddShowManualPrice))]
     [NotifyPropertyChangedFor(nameof(AddCanConfirm))]
     private AssetSearchStatus _addAssetStatus = AssetSearchStatus.None;
 
@@ -257,6 +275,9 @@ public partial class AccountsViewModel : ViewModelBase
     public bool AddIsAssetFound     => AddAssetStatus == AssetSearchStatus.Found;
     public bool AddIsAssetNotFound  => AddAssetStatus == AssetSearchStatus.NotFound;
     public bool AddIsAssetError     => AddAssetStatus == AssetSearchStatus.Error;
+    public bool AddIsAssetManual    => AddAssetStatus == AssetSearchStatus.Manual;
+    public bool AddShowManualPrice  => AddAssetStatus == AssetSearchStatus.NotFound
+                                    || AddAssetStatus == AssetSearchStatus.Manual;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AddCanConfirm))]
@@ -266,18 +287,45 @@ public partial class AccountsViewModel : ViewModelBase
     private double _addAssetUsdPrice = 1.0;
     private string _addAssetSymbol   = "";
 
-    partial void OnAddAssetTextChanged(string value) => TriggerAssetSearch(value.Trim());
-
-    // ── HTTP klient (sdílený, bez auth — CoinGecko free) ─────
-    private static readonly HttpClient _assetHttp = CreateAssetHttpClient();
-
-    private static HttpClient CreateAssetHttpClient()
+    partial void OnAddAssetTextChanged(string value)
     {
-        var c = new HttpClient
+        // Nové hledání → zahodit ruční cenu
+        AddManualPriceText = "";
+        TriggerAssetSearch(value.Trim());
+    }
+
+    // Ruční cena — záloha pro akcie/ETF (CoinGecko krypto only)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AddCanConfirm))]
+    private string _addManualPriceText = "";
+
+    partial void OnAddManualPriceTextChanged(string value)
+    {
+        if (AddAssetStatus != AssetSearchStatus.NotFound &&
+            AddAssetStatus != AssetSearchStatus.Manual) return;
+
+        if (double.TryParse(value.Replace(',', '.'), NumberStyles.Any,
+                            CultureInfo.InvariantCulture, out double price) && price > 0)
         {
-            BaseAddress = new Uri("https://api.coingecko.com/api/v3/"),
-            Timeout     = TimeSpan.FromSeconds(12),
-        };
+            _addAssetUsdPrice = price;
+            _addAssetSymbol   = AddAssetText.Trim().ToUpper();
+            AddAssetFoundName = $"Ruční cena: {price:N2} USD";
+            AddAssetStatus    = AssetSearchStatus.Manual;
+        }
+        else if (AddAssetStatus == AssetSearchStatus.Manual)
+        {
+            AddAssetFoundName = "";
+            AddAssetStatus    = AssetSearchStatus.NotFound;
+        }
+    }
+
+    // ── HTTP klienti ──────────────────────────────────────────
+    private static readonly HttpClient _cryptoHttp = MakeHttp("https://api.coingecko.com/api/v3/");
+    private static readonly HttpClient _stockHttp  = MakeHttp("https://query1.finance.yahoo.com/");
+
+    private static HttpClient MakeHttp(string baseUrl)
+    {
+        var c = new HttpClient { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(12) };
         c.DefaultRequestHeaders.Add("User-Agent", "AssetMap/0.1 (portfolio tracker)");
         c.DefaultRequestHeaders.Add("Accept",     "application/json");
         return c;
@@ -310,12 +358,39 @@ public partial class AccountsViewModel : ViewModelBase
             AddAssetStatus = AssetSearchStatus.None;
             return;
         }
-        _ = SearchAssetAsync(symbol, _assetSearchCts.Token);
+
+        var ct = _assetSearchCts.Token;
+        _ = AddTypeIndex switch
+        {
+            0 or 3 => SearchFiatOnlyAsync(symbol, ct),    // Banka / Hotovost
+            1      => SearchCryptoAsync(symbol, ct),       // Krypto → CoinGecko
+            2      => SearchStockAsync(symbol, ct),        // Broker → Yahoo Finance
+            _      => SearchCryptoAsync(symbol, ct),
+        };
     }
 
-    private async Task SearchAssetAsync(string symbol, CancellationToken ct)
+    // ── Banka / Hotovost: jen fiat slovník ───────────────────
+    private Task SearchFiatOnlyAsync(string symbol, CancellationToken ct)
     {
-        // ── 1. Zkontroluj known fiat (bez API) ────────────────
+        if (_knownFiat.TryGetValue(symbol, out var fiat))
+        {
+            _addAssetSymbol   = symbol.Equals("kč", StringComparison.OrdinalIgnoreCase) ? "Kč" : symbol.ToUpperInvariant();
+            _addAssetUsdPrice = fiat.UsdRate;
+            AddAssetFoundName = fiat.Name;
+            AddAssetStatus    = AssetSearchStatus.Found;
+        }
+        else
+        {
+            AddAssetFoundName = "Neplatná měna. Zadej např.: CZK, EUR, USD, GBP, CHF";
+            AddAssetStatus    = AssetSearchStatus.NotFound;
+        }
+        return Task.CompletedTask;
+    }
+
+    // ── Krypto: fiat fallback → CoinGecko ────────────────────
+    private async Task SearchCryptoAsync(string symbol, CancellationToken ct)
+    {
+        // Fiat fallback (např. EUR na crypto exchange)
         if (_knownFiat.TryGetValue(symbol, out var fiat))
         {
             Dispatcher.UIThread.Post(() =>
@@ -328,40 +403,29 @@ public partial class AccountsViewModel : ViewModelBase
             return;
         }
 
-        // ── 2. Debounce 450 ms před voláním API ───────────────
-        try { await Task.Delay(450, ct); }
-        catch (OperationCanceledException) { return; }
-
+        try { await Task.Delay(450, ct); } catch (OperationCanceledException) { return; }
         Dispatcher.UIThread.Post(() => AddAssetStatus = AssetSearchStatus.Searching);
 
         try
         {
-            // ── 3. CoinGecko search ───────────────────────────
-            var searchResp = await _assetHttp.GetAsync(
+            var searchResp = await _cryptoHttp.GetAsync(
                 $"search?query={Uri.EscapeDataString(symbol)}", ct);
 
             if (!searchResp.IsSuccessStatusCode)
             {
                 if (ct.IsCancellationRequested) return;
-                string errMsg = (int)searchResp.StatusCode switch
+                string msg = (int)searchResp.StatusCode switch
                 {
-                    429 => "CoinGecko: rate limit — zkus znovu za chvíli",
-                    401 or 403 => "CoinGecko: přístup odepřen (401/403)",
-                    _ => $"CoinGecko chyba {(int)searchResp.StatusCode}",
+                    429       => "CoinGecko: rate limit — zkus znovu za chvíli",
+                    401 or 403 => "CoinGecko: přístup odepřen",
+                    _         => $"CoinGecko chyba {(int)searchResp.StatusCode}",
                 };
-                Dispatcher.UIThread.Post(() =>
-                {
-                    AddAssetFoundName = errMsg;
-                    AddAssetStatus    = AssetSearchStatus.Error;
-                });
+                Dispatcher.UIThread.Post(() => { AddAssetFoundName = msg; AddAssetStatus = AssetSearchStatus.Error; });
                 return;
             }
 
             var searchJson = await searchResp.Content.ReadAsStringAsync(ct);
-
-            string? coinId   = null;
-            string? coinName = null;
-
+            string? coinId = null, coinName = null;
             using var doc = JsonDocument.Parse(searchJson);
             foreach (var coin in doc.RootElement.GetProperty("coins").EnumerateArray())
             {
@@ -370,7 +434,7 @@ public partial class AccountsViewModel : ViewModelBase
                 {
                     coinId   = coin.GetProperty("id").GetString();
                     coinName = coin.GetProperty("name").GetString();
-                    break; // první výsledek = nejvyšší market cap rank
+                    break;
                 }
             }
 
@@ -381,47 +445,40 @@ public partial class AccountsViewModel : ViewModelBase
                 return;
             }
 
-            // ── 4. Načti aktuální USD cenu ────────────────────
             double usdPrice = 0;
             try
             {
-                var priceResp = await _assetHttp.GetAsync(
+                var priceResp = await _cryptoHttp.GetAsync(
                     $"simple/price?ids={Uri.EscapeDataString(coinId)}&vs_currencies=usd", ct);
                 if (priceResp.IsSuccessStatusCode)
                 {
                     var priceJson = await priceResp.Content.ReadAsStringAsync(ct);
-                    using var priceDoc = JsonDocument.Parse(priceJson);
-                    if (priceDoc.RootElement.TryGetProperty(coinId, out var entry) &&
+                    using var pd = JsonDocument.Parse(priceJson);
+                    if (pd.RootElement.TryGetProperty(coinId, out var entry) &&
                         entry.TryGetProperty("usd", out var usdEl))
                         usdPrice = usdEl.GetDouble();
                 }
             }
-            catch { /* cena selhala — přidáme s cenou 0, opravíme při price refresh */ }
+            catch { /* cena selhala */ }
 
             if (ct.IsCancellationRequested) return;
-
-            string finalSymbol = symbol.ToUpperInvariant();
-            string finalName   = coinName ?? finalSymbol;
+            string fs = symbol.ToUpperInvariant(), fn = coinName ?? fs;
             Dispatcher.UIThread.Post(() =>
             {
-                _addAssetSymbol   = finalSymbol;
+                _addAssetSymbol   = fs;
                 _addAssetUsdPrice = usdPrice;
-                AddAssetFoundName = usdPrice > 0
-                    ? $"{finalName}  ≈  ${usdPrice:N2} / {finalSymbol}"
-                    : finalName;
-                AddAssetStatus = AssetSearchStatus.Found;
+                AddAssetFoundName = usdPrice > 0 ? $"{fn}  ≈  ${usdPrice:N2}" : fn;
+                AddAssetStatus    = AssetSearchStatus.Found;
             });
         }
         catch (OperationCanceledException) { }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
             if (!ct.IsCancellationRequested)
                 Dispatcher.UIThread.Post(() =>
                 {
-                    AddAssetFoundName = ex.Message.Length > 60
-                        ? "Nepodařilo se připojit k CoinGecko"
-                        : ex.Message;
-                    AddAssetStatus = AssetSearchStatus.Error;
+                    AddAssetFoundName = "Nepodařilo se připojit k CoinGecko";
+                    AddAssetStatus    = AssetSearchStatus.Error;
                 });
         }
         catch (Exception ex)
@@ -429,10 +486,110 @@ public partial class AccountsViewModel : ViewModelBase
             if (!ct.IsCancellationRequested)
                 Dispatcher.UIThread.Post(() =>
                 {
-                    AddAssetFoundName = ex.Message.Length > 60
-                        ? "Neočekávaná chyba při hledání"
-                        : ex.Message;
-                    AddAssetStatus = AssetSearchStatus.Error;
+                    AddAssetFoundName = ex.Message.Length > 60 ? "Neočekávaná chyba" : ex.Message;
+                    AddAssetStatus    = AssetSearchStatus.Error;
+                });
+        }
+    }
+
+    // ── Broker: fiat fallback → Yahoo Finance ────────────────
+    private async Task SearchStockAsync(string symbol, CancellationToken ct)
+    {
+        // Fiat fallback (cash na brokerage účtu)
+        if (_knownFiat.TryGetValue(symbol, out var fiat))
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _addAssetSymbol   = symbol.ToUpperInvariant();
+                _addAssetUsdPrice = fiat.UsdRate;
+                AddAssetFoundName = fiat.Name;
+                AddAssetStatus    = AssetSearchStatus.Found;
+            });
+            return;
+        }
+
+        try { await Task.Delay(450, ct); } catch (OperationCanceledException) { return; }
+        Dispatcher.UIThread.Post(() => AddAssetStatus = AssetSearchStatus.Searching);
+
+        try
+        {
+            var resp = await _stockHttp.GetAsync(
+                $"v8/finance/chart/{Uri.EscapeDataString(symbol.ToUpperInvariant())}?interval=1d&range=1d", ct);
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                resp.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                if (!ct.IsCancellationRequested)
+                    Dispatcher.UIThread.Post(() => AddAssetStatus = AssetSearchStatus.NotFound);
+                return;
+            }
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                if (ct.IsCancellationRequested) return;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AddAssetFoundName = $"Yahoo Finance chyba {(int)resp.StatusCode}";
+                    AddAssetStatus    = AssetSearchStatus.Error;
+                });
+                return;
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            if (ct.IsCancellationRequested) return;
+
+            using var doc  = JsonDocument.Parse(json);
+            var result     = doc.RootElement.GetProperty("chart").GetProperty("result");
+
+            if (result.ValueKind == JsonValueKind.Null || result.GetArrayLength() == 0)
+            {
+                Dispatcher.UIThread.Post(() => AddAssetStatus = AssetSearchStatus.NotFound);
+                return;
+            }
+
+            var meta    = result[0].GetProperty("meta");
+            double price = meta.TryGetProperty("regularMarketPrice", out var priceEl)
+                           ? priceEl.GetDouble() : 0;
+            string cur  = meta.TryGetProperty("currency", out var curEl)
+                           ? (curEl.GetString() ?? "USD") : "USD";
+            string name = meta.TryGetProperty("longName", out var nameEl) && nameEl.GetString() is { } ln
+                           ? ln
+                           : (meta.TryGetProperty("shortName", out var snEl) ? snEl.GetString() ?? symbol.ToUpperInvariant() : symbol.ToUpperInvariant());
+
+            // Převod na USD pokud cena není v USD
+            double usdPrice = price;
+            if (!string.Equals(cur, "USD", StringComparison.OrdinalIgnoreCase) &&
+                _knownFiat.TryGetValue(cur, out var curFiat))
+                usdPrice = price * curFiat.UsdRate;
+
+            string fs = symbol.ToUpperInvariant();
+            Dispatcher.UIThread.Post(() =>
+            {
+                _addAssetSymbol   = fs;
+                _addAssetUsdPrice = usdPrice;
+                AddAssetFoundName = usdPrice > 0
+                    ? $"{name}  ≈  ${usdPrice:N2} / akcie"
+                    : name;
+                AddAssetStatus    = AssetSearchStatus.Found;
+            });
+        }
+        catch (OperationCanceledException) { }
+        catch (HttpRequestException)
+        {
+            if (!ct.IsCancellationRequested)
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AddAssetFoundName = "Nepodařilo se připojit k Yahoo Finance";
+                    AddAssetStatus    = AssetSearchStatus.Error;
+                });
+        }
+        catch (Exception ex)
+        {
+            if (!ct.IsCancellationRequested)
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AddAssetFoundName = ex.Message.Length > 60 ? "Neočekávaná chyba" : ex.Message;
+                    AddAssetStatus    = AssetSearchStatus.Error;
                 });
         }
     }
@@ -444,7 +601,8 @@ public partial class AccountsViewModel : ViewModelBase
 
     public bool AddCanConfirm =>
         !string.IsNullOrWhiteSpace(AddName) &&
-        (IsEditMode || (AddAssetStatus == AssetSearchStatus.Found && ValidBalance(AddBalanceText)));
+        (IsEditMode || ((AddAssetStatus == AssetSearchStatus.Found || AddAssetStatus == AssetSearchStatus.Manual)
+                        && ValidBalance(AddBalanceText)));
 
     private AccountType ResolvedAddType => AddTypeIndex switch
     {
@@ -540,10 +698,11 @@ public partial class AccountsViewModel : ViewModelBase
         AddInstitution    = "";
         AddTypeIndex      = 0;
         AddColorIndex     = 0;
-        AddAssetText      = "";
-        AddAssetFoundName = "";
-        AddAssetStatus    = AssetSearchStatus.None;
-        AddBalanceText    = "";
+        AddAssetText       = "";
+        AddAssetFoundName  = "";
+        AddAssetStatus     = AssetSearchStatus.None;
+        AddManualPriceText = "";
+        AddBalanceText     = "";
         _addAssetSymbol   = "";
         _addAssetUsdPrice = 1.0;
         _assetSearchCts?.Cancel();

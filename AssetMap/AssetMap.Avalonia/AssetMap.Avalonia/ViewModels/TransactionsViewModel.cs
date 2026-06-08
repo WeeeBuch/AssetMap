@@ -141,6 +141,81 @@ public partial class TransactionsViewModel : ViewModelBase
         ApplyFilter();
     }
 
+    // ── Přidat transakci — dialog ────────────────────────────
+    [ObservableProperty] private bool _isTxDialogOpen = false;
+
+    // Účty pro ComboBox (jen jména; ID paralelně v _txAccountIds)
+    public ObservableCollection<string> TxAccountOptions { get; } = [];
+    private readonly List<Guid> _txAccountIds = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TxCanConfirm))]
+    private int _txAccountIndex = 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TxIsWithdrawal))]
+    [NotifyPropertyChangedFor(nameof(TxCanConfirm))]
+    private bool _txIsDeposit = true;
+    public bool TxIsWithdrawal => !TxIsDeposit;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TxCanConfirm))]
+    private string _txAmountText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TxCanConfirm))]
+    private string _txDateText = "";
+
+    [ObservableProperty] private string _txNoteText = "";
+
+    public bool TxCanConfirm =>
+        TxAccountIndex >= 0 && TxAccountIndex < _txAccountIds.Count &&
+        double.TryParse(TxAmountText.Replace(',', '.'), NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out double v) && v > 0 &&
+        DateTime.TryParse(TxDateText, out _);
+
+    [RelayCommand] private void SetTxDeposit()    => TxIsDeposit = true;
+    [RelayCommand] private void SetTxWithdrawal() => TxIsDeposit = false;
+
+    [RelayCommand] private void OpenAddTransaction()
+    {
+        // Znovu načíst účty z cache
+        TxAccountOptions.Clear();
+        _txAccountIds.Clear();
+        foreach (var d in AccountRepo.GetAll())
+        {
+            TxAccountOptions.Add(d.Account.Name);
+            _txAccountIds.Add(d.Account.Id);
+        }
+        TxAccountIndex = 0;
+        TxIsDeposit    = true;
+        TxAmountText   = "";
+        TxDateText     = DateTime.Today.ToString("dd.MM.yyyy");
+        TxNoteText     = "";
+        IsTxDialogOpen = true;
+    }
+
+    [RelayCommand] private void CancelTx() => IsTxDialogOpen = false;
+
+    [RelayCommand] private void ConfirmTx()
+    {
+        if (!TxCanConfirm) return;
+
+        double.TryParse(TxAmountText.Replace(',', '.'), NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out double amount);
+        DateTime.TryParse(TxDateText, out DateTime date);
+
+        AccountRepo.AddTransaction(
+            accountId: _txAccountIds[TxAccountIndex],
+            type:      TxIsDeposit ? TransactionType.Deposit : TransactionType.Withdrawal,
+            amount:    amount,
+            date:      date,
+            note:      string.IsNullOrWhiteSpace(TxNoteText) ? null : TxNoteText
+        );
+
+        IsTxDialogOpen = false;
+    }
+
     // ── Aplikace filtrů ───────────────────────────────────────
     private void ApplyFilter()
     {

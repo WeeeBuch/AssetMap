@@ -11,7 +11,7 @@
 
         <!-- ══════════ FILTR + STATS ══════════ -->
         <Border Classes="card" Padding="16 14">
-            <Grid ColumnDefinitions="Auto,12,Auto,*,Auto" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="Auto,12,Auto,*,Auto,12,Auto" VerticalAlignment="Center">
 
                 <!-- Výběr účtu -->
                 <ComboBox Grid.Column="0"
@@ -67,6 +67,14 @@
                                Foreground="{DynamicResource BrushDanger}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
+
+                <!-- Tlačítko přidat -->
+                <Button Grid.Column="6"
+                        Classes="primary"
+                        Command="{Binding OpenAddTransactionCommand}"
+                        Content="+ Přidat"
+                        Padding="14 7"
+                        VerticalAlignment="Center"/>
 
             </Grid>
         </Border>
