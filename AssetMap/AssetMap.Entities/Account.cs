@@ -9,6 +9,8 @@ public class Account
     public string Name { get; set; } = null!;
     public AccountType AccountType { get; set; }
     public string? Institution { get; set; }
+    public string? IconColorHex { get; set; }
+    public string  BaseCurrency { get; set; } = "USD";
     public bool IsArchived { get; set; }
 
     public User User { get; set; } = null!;
