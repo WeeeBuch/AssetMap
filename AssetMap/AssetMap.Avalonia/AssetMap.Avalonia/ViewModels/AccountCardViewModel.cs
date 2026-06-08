@@ -107,9 +107,10 @@ public partial class AccountCardViewModel : ViewModelBase
             })
             .ToList();
 
-        double finalBalance = history.Length > 0 ? history[^1] : data.CurrentBalance;
-        double firstBalance = history.Length > 0 ? history[0]  : finalBalance;
-        double pct = firstBalance > 0 ? (finalBalance - firstBalance) / firstBalance * 100 : 0;
+        // BalanceHistory je vždy v USD — pct odráží změnu hodnoty portfolia
+        double firstUsd = history.Length > 0 ? history[0]   : (data.ConvertedBalance ?? data.CurrentBalance);
+        double finalUsd = history.Length > 0 ? history[^1]  : firstUsd;
+        double pct = firstUsd > 0 ? (finalUsd - firstUsd) / firstUsd * 100 : 0;
 
         return new AccountCardViewModel
         {
@@ -120,14 +121,14 @@ public partial class AccountCardViewModel : ViewModelBase
             Institution       = acc.Institution ?? "",
             IconLetter        = acc.Name.Length > 0 ? acc.Name[0].ToString().ToUpper() : "?",
             IconBrush         = iconBrush,
-            BaseAmount        = finalBalance.ToString("N2"),
+            BaseAmount        = data.CurrentBalance.ToString("N2"),   // native (CZK/BTC/...)
             BaseCurrency      = data.BaseCurrency,
             ConvertedAmount   = data.ConvertedBalance.HasValue
                                     ? data.ConvertedBalance.Value.ToString("N2") : null,
             ConvertedCurrency = data.ConvertedCurrency,
             ChangeText        = (pct >= 0 ? "▲ +" : "▼ ") + Math.Abs(pct).ToString("N1") + " %",
             ChangePositive    = pct >= 0,
-            RawBalance        = finalBalance,
+            RawBalance        = data.CurrentBalance,
             ConversionRate    = conversionRate,
             BalanceHistory    = history,
             DepositIndices    = [.. deposits],

@@ -92,17 +92,17 @@ public partial class MainViewModel : ViewModelBase
     public bool IsCurrencyGbp => DisplayCurrency == "GBP";
     public bool IsCurrencyChf => DisplayCurrency == "CHF";
 
-    // Kurzy USD → cílová měna  (1 USD = X)
-    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD", 1.0);
-    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR", 0.9259);
-    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK", 23.33);
-    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP", 0.7963);
-    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF", 0.8796);
+    // Kurzy USD → cílová měna (z FxRates — aktuální ECB data)
+    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD");
+    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR");
+    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK");
+    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP");
+    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF");
 
-    private void ApplyCurrency(string code, double usdToDisplay)
+    private void ApplyCurrency(string code)
     {
         DisplayCurrency = code;
-        AccountRepo.SetDisplayCurrency(code, usdToDisplay);
+        AccountRepo.SetDisplayCurrency(code, CurrencyRateFor(code));
         SettingsService.Current.DisplayCurrency = code;
         SettingsService.Save();
         _ = AccountRepo.RefreshAsync();
@@ -110,7 +110,7 @@ public partial class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
-        // Inicializace kurzu z uložených nastavení
+        // Inicializace kurzu z uložených nastavení (zatím fallback hodnoty)
         AccountRepo.SetDisplayCurrency(
             SettingsService.Current.DisplayCurrency,
             CurrencyRateFor(SettingsService.Current.DisplayCurrency));
@@ -119,11 +119,16 @@ public partial class MainViewModel : ViewModelBase
         TransactionsVM = new TransactionsViewModel();
         AssetsVM       = new AssetsViewModel();
         BuildDashboard();
-        // Dashboard se taky aktualizuje po každém price refreshi
-        // DŮLEŽITÉ: UIThread.Post zajistí že BuildDashboard běží AŽ po AccountsVM.LoadAccounts
-        // (AccountsVM subscribuje první → jeho Post je ve frontě dřív)
         AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
         PriceRefreshService.Start();
+
+        // Stáhni živé kurzy (frankfurter.app/ECB) — po dokončení re-apply a refresh
+        FxRates.Updated += () => Dispatcher.UIThread.Post(() =>
+            ApplyCurrency(SettingsService.Current.DisplayCurrency));
+
+        // Nejdřív historii (snapshoty), pak aktuální kurz
+        // Až budou oboje hotové, AccountRepo.RefreshAsync() přepočítá BalanceHistory z reálných dat
+        _ = FxRates.RefreshHistoryAsync().ContinueWith(_ => FxRates.RefreshAsync());
     }
 
     private void BuildDashboard()
@@ -168,16 +173,8 @@ public partial class MainViewModel : ViewModelBase
         ((long)System.Math.Round(v))
             .ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
-    // USD → cílová měna  (1 USD = X)
-    internal static double CurrencyRateFor(string code) => code switch
-    {
-        "USD" => 1.0,
-        "EUR" => 0.9259,
-        "CZK" => 23.33,
-        "GBP" => 0.7963,
-        "CHF" => 0.8796,
-        _     => 1.0,
-    };
+    // USD → cílová měna (1 USD = X) — živé kurzy z FxRates/ECB
+    internal static double CurrencyRateFor(string code) => FxRates.UsdToFiat(code);
 
     // ── Sidebar toggle ────────────────────────────────────────
     [ObservableProperty]

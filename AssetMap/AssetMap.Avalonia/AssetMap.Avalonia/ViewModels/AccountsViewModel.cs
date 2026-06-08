@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AssetMap.Entities.Enums;
+using AssetMap.Repos;
 using AssetMap.Repos.Accounts;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -331,19 +332,27 @@ public partial class AccountsViewModel : ViewModelBase
         return c;
     }
 
-    // Fiat: symbol → (zobrazovaný název, kurz→USD)
-    private static readonly Dictionary<string, (string Name, double UsdRate)> _knownFiat =
+    // Fiat: symboly → zobrazovaný název (rate se čte dynamicky z FxRates)
+    private static readonly Dictionary<string, string> _fiatNames =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Kč"]  = ("Česká koruna",    0.0432),
-            ["CZK"] = ("Česká koruna",    0.0432),
-            ["EUR"] = ("Euro",            1.08),
-            ["USD"] = ("Americký dolar",  1.0),
-            ["GBP"] = ("Britská libra",   1.256),
-            ["CHF"] = ("Švýcarský frank", 1.137),
-            ["JPY"] = ("Japonský jen",    0.0065),
-            ["PLN"] = ("Polský zlotý",    0.245),
+            ["Kč"]  = "Česká koruna",
+            ["CZK"] = "Česká koruna",
+            ["EUR"] = "Euro",
+            ["USD"] = "Americký dolar",
+            ["GBP"] = "Britská libra",
+            ["CHF"] = "Švýcarský frank",
+            ["JPY"] = "Japonský jen",
+            ["PLN"] = "Polský zlotý",
         };
+
+    private static bool TryLookupFiat(string symbol, out string name, out double usdRate)
+    {
+        if (!_fiatNames.TryGetValue(symbol, out name!)) { usdRate = 0; return false; }
+        string code = symbol.Equals("kč", StringComparison.OrdinalIgnoreCase) ? "CZK" : symbol.ToUpperInvariant();
+        usdRate = FxRates.FiatToUsd(code);
+        return true;
+    }
 
     private CancellationTokenSource? _assetSearchCts;
 
@@ -372,11 +381,11 @@ public partial class AccountsViewModel : ViewModelBase
     // ── Banka / Hotovost: jen fiat slovník ───────────────────
     private Task SearchFiatOnlyAsync(string symbol, CancellationToken ct)
     {
-        if (_knownFiat.TryGetValue(symbol, out var fiat))
+        if (TryLookupFiat(symbol, out string name, out double usdRate))
         {
             _addAssetSymbol   = symbol.Equals("kč", StringComparison.OrdinalIgnoreCase) ? "Kč" : symbol.ToUpperInvariant();
-            _addAssetUsdPrice = fiat.UsdRate;
-            AddAssetFoundName = fiat.Name;
+            _addAssetUsdPrice = usdRate;
+            AddAssetFoundName = name;
             AddAssetStatus    = AssetSearchStatus.Found;
         }
         else
@@ -391,13 +400,13 @@ public partial class AccountsViewModel : ViewModelBase
     private async Task SearchCryptoAsync(string symbol, CancellationToken ct)
     {
         // Fiat fallback (např. EUR na crypto exchange)
-        if (_knownFiat.TryGetValue(symbol, out var fiat))
+        if (TryLookupFiat(symbol, out string fname, out double fusdRate))
         {
             Dispatcher.UIThread.Post(() =>
             {
                 _addAssetSymbol   = symbol.Equals("kč", StringComparison.OrdinalIgnoreCase) ? "Kč" : symbol.ToUpperInvariant();
-                _addAssetUsdPrice = fiat.UsdRate;
-                AddAssetFoundName = fiat.Name;
+                _addAssetUsdPrice = fusdRate;
+                AddAssetFoundName = fname;
                 AddAssetStatus    = AssetSearchStatus.Found;
             });
             return;
@@ -496,13 +505,13 @@ public partial class AccountsViewModel : ViewModelBase
     private async Task SearchStockAsync(string symbol, CancellationToken ct)
     {
         // Fiat fallback (cash na brokerage účtu)
-        if (_knownFiat.TryGetValue(symbol, out var fiat))
+        if (TryLookupFiat(symbol, out string sfname, out double sfusdRate))
         {
             Dispatcher.UIThread.Post(() =>
             {
                 _addAssetSymbol   = symbol.ToUpperInvariant();
-                _addAssetUsdPrice = fiat.UsdRate;
-                AddAssetFoundName = fiat.Name;
+                _addAssetUsdPrice = sfusdRate;
+                AddAssetFoundName = sfname;
                 AddAssetStatus    = AssetSearchStatus.Found;
             });
             return;
@@ -556,11 +565,10 @@ public partial class AccountsViewModel : ViewModelBase
                            ? ln
                            : (meta.TryGetProperty("shortName", out var snEl) ? snEl.GetString() ?? symbol.ToUpperInvariant() : symbol.ToUpperInvariant());
 
-            // Převod na USD pokud cena není v USD
+            // Převod na USD pokud cena není v USD (EUR, GBP... akcie na EU burzách)
             double usdPrice = price;
-            if (!string.Equals(cur, "USD", StringComparison.OrdinalIgnoreCase) &&
-                _knownFiat.TryGetValue(cur, out var curFiat))
-                usdPrice = price * curFiat.UsdRate;
+            if (!string.Equals(cur, "USD", StringComparison.OrdinalIgnoreCase))
+                usdPrice = price * FxRates.FiatToUsd(cur);
 
             string fs = symbol.ToUpperInvariant();
             Dispatcher.UIThread.Post(() =>
@@ -745,9 +753,11 @@ public partial class AccountsViewModel : ViewModelBase
         OnPropertyChanged(nameof(PieSlices));
 
         // Celková linie (raw — plná délka)
-        int len = accs[0].BalanceHistory.Length;
+        // BalanceHistory je vždy v USD → sečteme USD hodnoty a převedeme na zobrazovací měnu
+        int    len          = accs[0].BalanceHistory.Length;
+        double usdToDisplay = AccountRepo.UsdToDisplay;
         _rawTotalHistory = Enumerable.Range(0, len)
-            .Select(i => accs.Sum(a => a.BalanceHistory[i] * a.ConversionRate))
+            .Select(i => accs.Sum(a => a.BalanceHistory[i]) * usdToDisplay)
             .ToArray();
 
         // Čáry jednotlivých účtů v % změně od začátku (raw)

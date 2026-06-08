@@ -27,8 +27,17 @@ public static class PriceRefreshService
             using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
             try
             {
+                int tick = 0;
                 while (await timer.WaitForNextTickAsync(token))
+                {
+                    // Každých 24 hodin obnov i historii (snapshoty)
+                    if (tick % 24 == 0)
+                        await FxRates.RefreshHistoryAsync();
+
+                    await FxRates.RefreshAsync();
                     await AccountRepo.RefreshAsync();
+                    tick++;
+                }
             }
             catch (OperationCanceledException) { /* normální ukončení */ }
         }, token);

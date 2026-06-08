@@ -39,12 +39,14 @@ public static class AccountRepo
     /// <summary>Kurz 1 native unit → USD pro daný symbol aktiva.</summary>
     public static double UsdRateForSymbol(string symbol) => symbol switch
     {
-        "Kč" or "CZK" => 0.0432,
-        "EUR"          => 1.08,
+        "Kč" or "CZK" => FxRates.FiatToUsd("CZK"),
+        "EUR"          => FxRates.FiatToUsd("EUR"),
         "USD"          => 1.0,
-        "GBP"          => 1.256,
-        "CHF"          => 1.137,
-        "BTC"          => 83_000,
+        "GBP"          => FxRates.FiatToUsd("GBP"),
+        "CHF"          => FxRates.FiatToUsd("CHF"),
+        "JPY"          => FxRates.FiatToUsd("JPY"),
+        "PLN"          => FxRates.FiatToUsd("PLN"),
+        "BTC"          => 83_000,  // crypto: zatím pevné, TODO price feed
         "ETH"          => 3_200,
         "SOL"          => 170,
         "BNB"          => 600,
@@ -104,7 +106,7 @@ public static class AccountRepo
             CurrentBalance     = startBalance,
             ConvertedCurrency  = DisplayCurrency,
             ConvertedBalance   = startBalance * usdRate * UsdToDisplay,
-            BalanceHistory     = Enumerable.Repeat(startBalance, 365).ToArray(),
+            BalanceHistory     = Enumerable.Repeat(startBalance * usdRate, 365).ToArray(),
             RecentTransactions = [],
         };
 
@@ -220,32 +222,30 @@ public static class AccountRepo
 
     private static List<AccountData> GenerateMock() =>
     [
-        // conversionRate = native → USD
-        // CZK: 1 CZK ≈ 0.0432 USD
-        Build("Běžný účet",   "Česká spořitelna", AccountType.Bank,         AsstCzk,
-              startBalance: 42_500,  conversionRateToUsd: 0.0432, seed: 1),
-
-        Build("Spořicí účet", "Raiffeisenbank",   AccountType.Bank,         AsstCzk,
-              startBalance: 185_000, conversionRateToUsd: 0.0432, seed: 2),
-
-        // EUR: 1 EUR = 1.08 USD
-        Build("Revolut",      "Revolut",           AccountType.Bank,         AsstEur,
-              startBalance: 2_400,   conversionRateToUsd: 1.08,   seed: 3),
-
-        // BTC: 1 BTC = 83 000 USD  (CoinGecko/Bitstamp vrací USD)
-        Build("Bitstamp",     "Bitcoin",           AccountType.CryptoWallet, AsstBtc,
-              startBalance: 0.85,    conversionRateToUsd: 83_000, seed: 4),
+        Build("Běžný účet",   "Česká spořitelna", AccountType.Bank,         AsstCzk, startBalance: 42_500,  seed: 1),
+        Build("Spořicí účet", "Raiffeisenbank",   AccountType.Bank,         AsstCzk, startBalance: 185_000, seed: 2),
+        Build("Revolut",      "Revolut",           AccountType.Bank,         AsstEur, startBalance: 2_400,   seed: 3),
+        Build("Bitstamp",     "Bitcoin",           AccountType.CryptoWallet, AsstBtc, startBalance: 0.85,    seed: 4),
     ];
 
     private static AccountData Build(
         string name, string institution, AccountType type,
         Asset asset, double startBalance,
-        double conversionRateToUsd,
         int seed)
     {
         var rng       = new Random(seed);
         var accountId = Guid.NewGuid();
         var now       = DateTime.Today;
+
+        // Kurz native → USD (z FxRates — živý nebo fallback)
+        // Pro "Kč" použijeme "CZK" kód; pro krypto: hardcoded
+        string fxCode      = asset.Symbol.Equals("Kč", StringComparison.OrdinalIgnoreCase)
+                             ? "CZK" : asset.Symbol;
+        double convRate    = UsdRateForSymbol(asset.Symbol);
+
+        // Zjisti jestli máme historické snapshoty (po FxRates.RefreshHistoryAsync)
+        bool hasFxHistory  = PriceSnapshotRepo.TryGetHistory(fxCode, out double[] fxHistory)
+                             && fxHistory.Length == 365;
 
         var history      = new double[365];
         var transactions = new List<Transaction>();
@@ -255,9 +255,12 @@ public static class AccountRepo
         {
             double delta = (rng.NextDouble() - 0.44) * startBalance * 0.025;
             balance    = Math.Max(balance + delta, startBalance * 0.1);
-            history[i] = balance;
 
-            // ~15 % šance na transakci
+            // BalanceHistory vždy v USD:
+            // - pokud máme snapshoty: balance × historický kurz pro tento den
+            // - jinak: balance × aktuální kurz (flat — bude aktualizováno po refresh)
+            history[i] = balance * (hasFxHistory ? fxHistory[i] : convRate);
+
             if (rng.NextDouble() < 0.15)
             {
                 bool   credit = rng.NextDouble() > 0.45;
@@ -277,7 +280,7 @@ public static class AccountRepo
             }
         }
 
-        double final = history[^1];
+        double finalNative = balance;
 
         return new AccountData
         {
@@ -291,10 +294,10 @@ public static class AccountRepo
                 Transactions = transactions,
             },
             BaseCurrency       = asset.Symbol,
-            CurrentBalance     = final,
+            CurrentBalance     = finalNative,
             ConvertedCurrency  = DisplayCurrency,
-            ConvertedBalance   = final * conversionRateToUsd * UsdToDisplay,
-            BalanceHistory     = history,
+            ConvertedBalance   = finalNative * convRate * UsdToDisplay,
+            BalanceHistory     = history,    // hodnoty v USD
             RecentTransactions = [.. transactions.OrderByDescending(t => t.Date).Take(25)],
         };
     }
