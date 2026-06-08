@@ -302,7 +302,7 @@
                     IsVisible="{Binding HasSelectedAccount}">
 
             <!-- Hlavička detailu -->
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Text="{Binding SelectedAccount.AccountName}"
                                FontSize="17" FontWeight="SemiBold"
@@ -328,8 +328,18 @@
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
 
-                <!-- Import CSV -->
+                <!-- + Přidat transakci -->
                 <Button Grid.Column="2"
+                        Classes="accent"
+                        Command="{Binding OpenNewTxDialogCommand}"
+                        VerticalAlignment="Top"
+                        Padding="12 6" CornerRadius="7"
+                        ToolTip.Tip="Přidat transakci"
+                        Margin="0 0 10 0"
+                        Content="+ Přidat"/>
+
+                <!-- Import CSV -->
+                <Button Grid.Column="3"
                         Classes="ghost"
                         Click="ImportCsv_Click"
                         VerticalAlignment="Top"
@@ -341,7 +351,7 @@
                 </Button>
 
                 <!-- Upravit -->
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Classes="ghost"
                         Command="{Binding OpenEditAccountCommand}"
                         VerticalAlignment="Top"
@@ -354,7 +364,7 @@
                 </Button>
 
                 <!-- Smazat -->
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Classes="ghost"
                         Command="{Binding DeleteAccountCommand}"
                         VerticalAlignment="Top"
@@ -366,7 +376,7 @@
                 </Button>
 
                 <!-- Zavřít detail -->
-                <Button Grid.Column="5"
+                <Button Grid.Column="6"
                         Classes="ghost"
                         Command="{Binding CloseDetailCommand}"
                         VerticalAlignment="Top"
@@ -563,13 +573,6 @@
 
                 </StackPanel>
             </Border>
-
-            <!-- ── Přidat transakci ──────────────────────────── -->
-            <Button Command="{Binding OpenNewTxDialogCommand}"
-                    Classes="accent"
-                    HorizontalAlignment="Right"
-                    Padding="16 9" CornerRadius="8"
-                    Content="+ Přidat transakci"/>
 
         </StackPanel>
     </StackPanel>

@@ -561,7 +561,7 @@
             </Panel>
 
             <!-- ══════════════════════════════════════
-                 MODAL — NOVÁ TRANSAKCE (split-panel)
+                 MODAL — NOVÁ TRANSAKCE
                  Viewport-fixed: mimo ScrollViewer
                  ══════════════════════════════════════ -->
             <Panel Grid.Row="0" Grid.RowSpan="2"
@@ -573,292 +573,364 @@
                     <Border Background="#B2000000"/>
 
                     <!-- Dialog card -->
-                    <Border Width="620"
+                    <Border Width="720"
                             CornerRadius="14"
                             Background="{DynamicResource BrushSurface}"
                             BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1"
-                            Padding="28 24"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             BoxShadow="0 12 48 4 #70000000">
-                        <StackPanel Spacing="0">
 
-                            <!-- Hlavička -->
-                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 18">
-                                <TextBlock Grid.Column="0"
-                                           Text="Přidat transakci"
-                                           FontSize="17" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextPrimary}"
-                                           VerticalAlignment="Center"/>
+                        <Grid RowDefinitions="Auto,*,Auto">
+
+                            <!-- ── HEADER: přepínač + zavřít ──────────────── -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto"
+                                  Margin="20 18 20 0">
+
+                                <!-- Přepínač Příjem | Transfer | Výdaj -->
+                                <Border Grid.Column="0"
+                                        CornerRadius="9"
+                                        Background="{DynamicResource BrushSurfaceAlt}"
+                                        BorderBrush="{DynamicResource BrushBorder}"
+                                        BorderThickness="1"
+                                        Padding="3"
+                                        HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="0">
+                                        <Button Classes="seg" Classes.on="{Binding IsNewTxIn}"
+                                                Command="{Binding SetNewTxInCommand}"
+                                                Padding="26 7" Content="Příjem"/>
+                                        <Button Classes="seg" Classes.on="{Binding IsNewTxTransfer}"
+                                                Command="{Binding SetNewTxTransferCommand}"
+                                                Padding="26 7" Content="Transfer"/>
+                                        <Button Classes="seg" Classes.on="{Binding IsNewTxOut}"
+                                                Command="{Binding SetNewTxOutCommand}"
+                                                Padding="26 7" Content="Výdaj"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Zavřít -->
                                 <Button Grid.Column="1"
                                         Classes="ghost"
                                         Command="{Binding CloseNewTxDialogCommand}"
-                                        Width="30" Height="30" Padding="0" CornerRadius="8">
+                                        Width="30" Height="30" Padding="0" CornerRadius="8"
+                                        Margin="10 0 0 0" VerticalAlignment="Center">
                                     <TextBlock Text="✕" FontSize="13"
                                                Foreground="{DynamicResource BrushTextSecondary}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Button>
                             </Grid>
 
-                            <!-- Účet + přepínač In/Out/Převod -->
-                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 14">
+                            <!-- ── OBSAH ───────────────────────────────────── -->
+                            <Panel Grid.Row="1" Margin="0 16 0 0" MinHeight="230">
 
-                                <!-- Výběr zdrojového účtu -->
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Účet"
-                                               FontSize="11" FontWeight="Medium"
-                                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                                    <ComboBox ItemsSource="{Binding Accounts}"
-                                              SelectedItem="{Binding NewTxSourceAccount}"
-                                              HorizontalAlignment="Stretch">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate DataType="vm:AccountCardViewModel">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Border Width="8" Height="8" CornerRadius="4"
-                                                            Background="{Binding IconBrush}"
-                                                            VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding AccountName}"
-                                                               FontSize="13" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
+                                <!-- ════════ PŘÍJEM ════════
+                                     LEFT : částka + velká zelená →
+                                     RIGHT: účet + popisek + datum            -->
+                                <Grid IsVisible="{Binding IsNewTxIn}"
+                                      ColumnDefinitions="*,1,*">
 
-                                <!-- Přepínač In / Out / Převod -->
-                                <Border Grid.Column="1"
-                                        CornerRadius="8"
-                                        Background="{DynamicResource BrushSurfaceAlt}"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="1"
-                                        Padding="3"
-                                        Margin="14 0 0 0"
-                                        VerticalAlignment="Bottom">
-                                    <StackPanel Orientation="Horizontal" Spacing="0">
-                                        <Button Classes="seg" Classes.on="{Binding IsNewTxIn}"
-                                                Command="{Binding SetNewTxInCommand}"
-                                                Content="↙ Příjem"/>
-                                        <Button Classes="seg" Classes.on="{Binding IsNewTxOut}"
-                                                Command="{Binding SetNewTxOutCommand}"
-                                                Content="↗ Výdaj"/>
-                                        <Button Classes="seg" Classes.on="{Binding IsNewTxTransfer}"
-                                                Command="{Binding SetNewTxTransferCommand}"
-                                                Content="⇄ Převod"/>
+                                    <!-- LEFT -->
+                                    <Grid Grid.Column="0"
+                                          RowDefinitions="Auto,*"
+                                          Margin="28 16 20 20">
+                                        <TextBox Grid.Row="0"
+                                                 Text="{Binding NewTxAmount}"
+                                                 PlaceholderText="Příchozí částka"
+                                                 FontSize="15" FontWeight="SemiBold"/>
+                                        <!-- Filled green arrow → -->
+                                        <Viewbox Grid.Row="1"
+                                                 Width="120" Height="74"
+                                                 HorizontalAlignment="Left"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0 12 0 0">
+                                            <Canvas Width="100" Height="62">
+                                                <Path Data="M 0,19 L 58,19 L 58,0 L 100,31 L 58,62 L 58,43 L 0,43 Z"
+                                                      Fill="#00E57A"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <!-- Dělicí čára -->
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource BrushBorder}"/>
+
+                                    <!-- RIGHT -->
+                                    <StackPanel Grid.Column="2"
+                                                Margin="20 16 28 20"
+                                                Spacing="8"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="Účet"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{Binding Accounts}"
+                                                  SelectedItem="{Binding NewTxSourceAccount}"
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:AccountCardViewModel">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Border Width="8" Height="8" CornerRadius="4"
+                                                                Background="{Binding IconBrush}"
+                                                                VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding AccountName}" FontSize="13"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Popisek"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBox Text="{Binding NewTxNote}"
+                                                 PlaceholderText="Od koho / popis…"
+                                                 FontSize="13"/>
+                                        <TextBlock Text="Datum"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <DatePicker SelectedDate="{Binding NewTxDate}"
+                                                    HorizontalAlignment="Stretch"/>
                                     </StackPanel>
-                                </Border>
-                            </Grid>
+                                </Grid>
 
-                            <!-- ════ Split panel [LEVÁ | STŘED | PRAVÁ] ════ -->
-                            <Grid ColumnDefinitions="*,82,*" MinHeight="130" Margin="0 0 0 16">
+                                <!-- ════════ VÝDAJ ════════
+                                     LEFT : účet + popisek + datum
+                                     RIGHT: částka + velká červená →           -->
+                                <Grid IsVisible="{Binding IsNewTxOut}"
+                                      ColumnDefinitions="*,1,*">
 
-                                <!-- ── LEVÁ PLOCHA ── -->
-                                <Border Grid.Column="0"
-                                        Background="{DynamicResource BrushSurfaceAlt}"
-                                        CornerRadius="8 0 0 8"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="1 1 0 1"
-                                        Padding="14 12">
-                                    <Panel>
-
-                                        <!-- IN: zelená šipka ↙ + částka -->
-                                        <StackPanel IsVisible="{Binding IsNewTxIn}"
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="8">
-                                            <TextBlock Text="↙"
-                                                       FontSize="36" FontWeight="Bold"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="#00E57A"/>
-                                            <TextBox Text="{Binding NewTxAmount}"
-                                                     PlaceholderText="Částka"
-                                                     Width="120"
-                                                     TextAlignment="Center"
-                                                     FontSize="16" FontWeight="SemiBold"/>
-                                        </StackPanel>
-
-                                        <!-- OUT: příjemce + datum -->
-                                        <StackPanel IsVisible="{Binding IsNewTxOut}"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="5">
-                                            <TextBlock Text="Příjemce / popis"
-                                                       FontSize="10"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <TextBox Text="{Binding NewTxNote}"
-                                                     PlaceholderText="Komu / kam?"
-                                                     FontSize="13"/>
-                                            <TextBlock Text="Datum"
-                                                       FontSize="10" Margin="0 6 0 0"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <DatePicker SelectedDate="{Binding NewTxDate}"
-                                                        FontSize="12"/>
-                                        </StackPanel>
-
-                                        <!-- PŘEVOD: zdroj info -->
-                                        <StackPanel IsVisible="{Binding IsNewTxTransfer}"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="6">
-                                            <TextBlock Text="Z účtu"
-                                                       FontSize="10"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <TextBlock Text="{Binding NewTxSourceAccountName}"
-                                                       FontSize="14" FontWeight="Medium"
-                                                       Foreground="{DynamicResource BrushTextPrimary}"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding NewTxSourceBalance}"
-                                                       FontSize="12"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        </StackPanel>
-
-                                    </Panel>
-                                </Border>
-
-                                <!-- ── STŘEDOVÝ SLOUPEC ── -->
-                                <Border Grid.Column="1"
-                                        Background="{DynamicResource BrushSurface}"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="1"
-                                        Padding="6 10">
-                                    <StackPanel VerticalAlignment="Center"
-                                                HorizontalAlignment="Center"
-                                                Spacing="4">
-
-                                        <!-- IN: datum -->
-                                        <StackPanel IsVisible="{Binding IsNewTxIn}" Spacing="4"
-                                                    HorizontalAlignment="Center">
-                                            <TextBlock Text="Datum" FontSize="9"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <DatePicker SelectedDate="{Binding NewTxDate}"
-                                                        FontSize="10" Width="70"/>
-                                        </StackPanel>
-
-                                        <!-- OUT: šipka nahoru + poplatek -->
-                                        <StackPanel IsVisible="{Binding IsNewTxOut}" Spacing="3"
-                                                    HorizontalAlignment="Center">
-                                            <TextBlock Text="↑" FontSize="20" FontWeight="Bold"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="#FFA040"/>
-                                            <TextBox Text="{Binding NewTxFee}"
-                                                     PlaceholderText="0"
-                                                     Width="66" FontSize="11"
-                                                     TextAlignment="Center"/>
-                                            <TextBlock Text="poplatek" FontSize="9"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                        </StackPanel>
-
-                                        <!-- PŘEVOD: částka + fee + datum -->
-                                        <StackPanel IsVisible="{Binding IsNewTxTransfer}" Spacing="5"
-                                                    HorizontalAlignment="Center">
-                                            <TextBox Text="{Binding NewTxAmount}"
-                                                     PlaceholderText="Částka"
-                                                     Width="70" FontSize="13" FontWeight="SemiBold"
-                                                     TextAlignment="Center"/>
-                                            <Border Height="1"
-                                                    Background="{DynamicResource BrushBorder}"
-                                                    Margin="4 0"/>
-                                            <TextBox Text="{Binding NewTxFee}"
-                                                     PlaceholderText="fee"
-                                                     Width="70" FontSize="11"
-                                                     TextAlignment="Center"/>
-                                            <DatePicker SelectedDate="{Binding NewTxDate}"
-                                                        FontSize="9" Width="70"/>
-                                        </StackPanel>
-
+                                    <!-- LEFT -->
+                                    <StackPanel Grid.Column="0"
+                                                Margin="28 16 20 20"
+                                                Spacing="8"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="Účet"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{Binding Accounts}"
+                                                  SelectedItem="{Binding NewTxSourceAccount}"
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:AccountCardViewModel">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Border Width="8" Height="8" CornerRadius="4"
+                                                                Background="{Binding IconBrush}"
+                                                                VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding AccountName}" FontSize="13"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Popisek"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBox Text="{Binding NewTxNote}"
+                                                 PlaceholderText="Komu / popis…"
+                                                 FontSize="13"/>
+                                        <TextBlock Text="Datum"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <DatePicker SelectedDate="{Binding NewTxDate}"
+                                                    HorizontalAlignment="Stretch"/>
                                     </StackPanel>
-                                </Border>
 
-                                <!-- ── PRAVÁ PLOCHA ── -->
-                                <Border Grid.Column="2"
-                                        Background="{DynamicResource BrushSurfaceAlt}"
-                                        CornerRadius="0 8 8 0"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="0 1 1 1"
-                                        Padding="14 12">
-                                    <Panel>
+                                    <!-- Dělicí čára -->
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource BrushBorder}"/>
 
-                                        <!-- IN: odesílatel/popis -->
-                                        <StackPanel IsVisible="{Binding IsNewTxIn}"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="5">
-                                            <TextBlock Text="Odesílatel / popis"
-                                                       FontSize="10"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <TextBox Text="{Binding NewTxNote}"
-                                                     PlaceholderText="Od koho / odkud?"
-                                                     FontSize="13"/>
-                                        </StackPanel>
+                                    <!-- RIGHT -->
+                                    <Grid Grid.Column="2"
+                                          RowDefinitions="Auto,*"
+                                          Margin="20 16 28 20">
+                                        <TextBox Grid.Row="0"
+                                                 Text="{Binding NewTxAmount}"
+                                                 PlaceholderText="Odchozí částka"
+                                                 FontSize="15" FontWeight="SemiBold"/>
+                                        <!-- Filled red arrow → -->
+                                        <Viewbox Grid.Row="1"
+                                                 Width="120" Height="74"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0 12 0 0">
+                                            <Canvas Width="100" Height="62">
+                                                <Path Data="M 0,19 L 58,19 L 58,0 L 100,31 L 58,62 L 58,43 L 0,43 Z"
+                                                      Fill="#FF3355"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+                                </Grid>
 
-                                        <!-- OUT: částka + červená šipka ↗ -->
-                                        <StackPanel IsVisible="{Binding IsNewTxOut}"
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="8">
-                                            <TextBox Text="{Binding NewTxAmount}"
+                                <!-- ════════ TRANSFER ════════
+                                     LEFT  : zdrojový účet + popisek + datum
+                                     CENTER: [→outline] částka [→outline] / poplatek / ↓
+                                     RIGHT : cílový účet + datum                         -->
+                                <Grid IsVisible="{Binding IsNewTxTransfer}"
+                                      ColumnDefinitions="*,1,Auto,1,*">
+
+                                    <!-- LEFT: zdroj -->
+                                    <StackPanel Grid.Column="0"
+                                                Margin="28 16 16 20"
+                                                Spacing="8"
+                                                VerticalAlignment="Top">
+                                        <TextBlock Text="Z účtu"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{Binding Accounts}"
+                                                  SelectedItem="{Binding NewTxSourceAccount}"
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:AccountCardViewModel">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Border Width="8" Height="8" CornerRadius="4"
+                                                                Background="{Binding IconBrush}"
+                                                                VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding AccountName}" FontSize="13"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Popisek"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <TextBox Text="{Binding NewTxNote}"
+                                                 PlaceholderText="Poznámka…"
+                                                 FontSize="13"/>
+                                        <TextBlock Text="Datum"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <DatePicker SelectedDate="{Binding NewTxDate}"
+                                                    HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+
+                                    <!-- Dělicí čára vlevo -->
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource BrushBorder}"/>
+
+                                    <!-- CENTER: →outline [částka] →outline / poplatek / ↓ -->
+                                    <StackPanel Grid.Column="2"
+                                                Width="150"
+                                                Margin="10 20"
+                                                Spacing="8"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+
+                                        <!-- [→outline] částka [→outline] v jednom řádku -->
+                                        <Grid ColumnDefinitions="Auto,*,Auto"
+                                              VerticalAlignment="Center">
+                                            <!-- Outline arrow left -->
+                                            <Viewbox Grid.Column="0"
+                                                     Width="26" Height="18"
+                                                     VerticalAlignment="Center">
+                                                <Canvas Width="50" Height="34">
+                                                    <Path Data="M 0,10 L 28,10 L 28,0 L 50,17 L 28,34 L 28,24 L 0,24 Z"
+                                                          Stroke="{DynamicResource BrushTextSecondary}"
+                                                          StrokeThickness="2.5"
+                                                          Fill="Transparent"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                            <!-- Částka -->
+                                            <TextBox Grid.Column="1"
+                                                     Text="{Binding NewTxAmount}"
                                                      PlaceholderText="Částka"
-                                                     Width="120"
+                                                     FontSize="13" FontWeight="SemiBold"
                                                      TextAlignment="Center"
-                                                     FontSize="16" FontWeight="SemiBold"/>
-                                            <TextBlock Text="↗"
-                                                       FontSize="36" FontWeight="Bold"
-                                                       HorizontalAlignment="Center"
-                                                       Foreground="#FF3355"/>
-                                        </StackPanel>
+                                                     Margin="4 0"/>
+                                            <!-- Outline arrow right -->
+                                            <Viewbox Grid.Column="2"
+                                                     Width="26" Height="18"
+                                                     VerticalAlignment="Center">
+                                                <Canvas Width="50" Height="34">
+                                                    <Path Data="M 0,10 L 28,10 L 28,0 L 50,17 L 28,34 L 28,24 L 0,24 Z"
+                                                          Stroke="{DynamicResource BrushTextSecondary}"
+                                                          StrokeThickness="2.5"
+                                                          Fill="Transparent"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Grid>
 
-                                        <!-- PŘEVOD: cílový účet -->
-                                        <StackPanel IsVisible="{Binding IsNewTxTransfer}"
-                                                    VerticalAlignment="Center"
-                                                    Spacing="6">
-                                            <TextBlock Text="Na účet"
-                                                       FontSize="10"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
-                                            <ComboBox ItemsSource="{Binding Accounts}"
-                                                      SelectedItem="{Binding NewTxTransferTarget}"
-                                                      PlaceholderText="Vyberte účet…"
-                                                      HorizontalAlignment="Stretch"
-                                                      FontSize="12">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate DataType="vm:AccountCardViewModel">
-                                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <Border Width="8" Height="8" CornerRadius="4"
-                                                                    Background="{Binding IconBrush}"
-                                                                    VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding AccountName}"
-                                                                       FontSize="13" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <TextBlock Text="{Binding NewTxTargetBalance}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource BrushTextSecondary}"
-                                                       IsVisible="{Binding NewTxTransferTarget,
-                                                           Converter={x:Static ObjectConverters.IsNotNull}}"/>
-                                        </StackPanel>
+                                        <!-- Poplatek -->
+                                        <TextBox Text="{Binding NewTxFee}"
+                                                 PlaceholderText="Poplatek fees"
+                                                 FontSize="12"
+                                                 TextAlignment="Center"/>
 
-                                    </Panel>
-                                </Border>
+                                        <!-- Šipka dolů ↓ -->
+                                        <Viewbox Width="22" Height="32"
+                                                 HorizontalAlignment="Center">
+                                            <Canvas Width="40" Height="58">
+                                                <Path Data="M 12,0 L 12,32 L 0,32 L 20,58 L 40,32 L 28,32 L 28,0 Z"
+                                                      Stroke="{DynamicResource BrushTextSecondary}"
+                                                      StrokeThickness="2.5"
+                                                      Fill="Transparent"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </StackPanel>
 
-                            </Grid><!-- /split panel -->
+                                    <!-- Dělicí čára vpravo -->
+                                    <Border Grid.Column="3"
+                                            Background="{DynamicResource BrushBorder}"/>
 
-                            <!-- Oddělovač -->
-                            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0 0 0 16"/>
+                                    <!-- RIGHT: cíl -->
+                                    <StackPanel Grid.Column="4"
+                                                Margin="16 16 28 20"
+                                                Spacing="8"
+                                                VerticalAlignment="Top">
+                                        <TextBlock Text="Na účet"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{Binding Accounts}"
+                                                  SelectedItem="{Binding NewTxTransferTarget}"
+                                                  PlaceholderText="Vyberte účet…"
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:AccountCardViewModel">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Border Width="8" Height="8" CornerRadius="4"
+                                                                Background="{Binding IconBrush}"
+                                                                VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding AccountName}" FontSize="13"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="{Binding NewTxTargetBalance}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                                   IsVisible="{Binding NewTxTransferTarget,
+                                                       Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                        <TextBlock Text="Datum"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <DatePicker SelectedDate="{Binding NewTxDate}"
+                                                    HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+                                </Grid>
 
-                            <!-- Akční tlačítka -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-                                <Button Classes="secondary"
-                                        Command="{Binding CloseNewTxDialogCommand}"
-                                        Content="Zrušit"
-                                        Padding="20 9"/>
-                                <Button Classes="primary"
-                                        Command="{Binding SaveNewTransactionCommand}"
-                                        IsEnabled="{Binding !IsNewTxSaving}"
-                                        Content="Uložit transakci"
-                                        Padding="20 9"/>
-                            </StackPanel>
+                            </Panel><!-- /obsah -->
 
-                        </StackPanel>
+                            <!-- ── FOOTER: tlačítka ───────────────────────── -->
+                            <Border Grid.Row="2"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="0 1 0 0"
+                                    Padding="20 14">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Button Grid.Column="0"
+                                            Classes="primary"
+                                            Command="{Binding SaveNewTransactionCommand}"
+                                            IsEnabled="{Binding !IsNewTxSaving}"
+                                            Content="Přidat"
+                                            Padding="22 9"/>
+                                    <Button Grid.Column="2"
+                                            Classes="secondary"
+                                            Command="{Binding CloseNewTxDialogCommand}"
+                                            Content="Zrušit"
+                                            Padding="22 9"/>
+                                </Grid>
+                            </Border>
+
+                        </Grid>
                     </Border>
                 </Panel>
             </Panel>
