@@ -1,0 +1,212 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AssetMap.Avalonia.ViewModels"
+             xmlns:comp="using:AssetMap.Avalonia.Views.Components"
+             x:Class="AssetMap.Avalonia.Views.AssetsView"
+             x:DataType="vm:AssetsViewModel">
+    <Design.DataContext>
+        <vm:AssetsViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="280,16,*" VerticalAlignment="Top">
+
+        <!-- ══════════ LEVÝ SLOUPEC: koláč + typy ══════════ -->
+        <StackPanel Grid.Column="0" Spacing="12">
+
+            <!-- Koláč + celková hodnota -->
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Alokace"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"/>
+
+                    <comp:PieChart Height="200" Slices="{Binding PieSlices}"/>
+
+                    <!-- Legenda typů -->
+                    <ItemsControl ItemsSource="{Binding TypeRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:AssetTypeRow">
+                                <Grid ColumnDefinitions="12,10,*,Auto" Margin="0 5">
+                                    <Border Grid.Column="0"
+                                            Width="12" Height="12" CornerRadius="6"
+                                            Background="{Binding Brush}"
+                                            VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding TypeLabel}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="3"
+                                                HorizontalAlignment="Right"
+                                                Spacing="2">
+                                        <TextBlock Text="{Binding ValueText}"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                                   HorizontalAlignment="Right"/>
+                                        <TextBlock Text="{Binding AllocText}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                                   HorizontalAlignment="Right"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Separator + celkem -->
+                    <Border Height="1" Background="{DynamicResource BrushBorder}"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Celkem"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding TotalText}"
+                                   FontSize="14" FontWeight="Bold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                    </Grid>
+
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+
+        <!-- ══════════ PRAVÝ SLOUPEC: seznam aktiv ══════════ -->
+        <Border Grid.Column="2" Classes="card" Padding="0">
+            <StackPanel>
+
+                <!-- Hlavička -->
+                <Grid ColumnDefinitions="52,*,160,160,Auto"
+                      Margin="16 12 16 10">
+                    <TextBlock Grid.Column="1"
+                               Text="AKTIVUM"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Opacity="0.7" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2"
+                               Text="MNOŽSTVÍ"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Opacity="0.7" VerticalAlignment="Center"
+                               HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Column="3"
+                               Text="HODNOTA"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Opacity="0.7" VerticalAlignment="Center"
+                               HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Column="4"
+                               Text="PODÍL"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               Opacity="0.7" VerticalAlignment="Center"
+                               HorizontalAlignment="Right"/>
+                </Grid>
+
+                <Border Height="1" Background="{DynamicResource BrushBorder}"/>
+
+                <!-- Prázdný stav -->
+                <TextBlock Text="Žádná aktiva"
+                           FontSize="13"
+                           Foreground="{DynamicResource BrushTextSecondary}"
+                           HorizontalAlignment="Center"
+                           Margin="0 32"
+                           IsVisible="{Binding !Assets.Count}"/>
+
+                <!-- Řádky aktiv -->
+                <ItemsControl ItemsSource="{Binding Assets}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:AssetRowItem">
+                            <Grid ColumnDefinitions="52,*,160,160,180"
+                                  Margin="16 10 16 10">
+
+                                <!-- Ikona aktiva -->
+                                <Border Grid.Column="0"
+                                        Width="38" Height="38" CornerRadius="10"
+                                        Background="{Binding IconBrush}">
+                                    <TextBlock Text="{Binding Symbol}"
+                                               FontSize="10" FontWeight="Bold"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Název + typ -->
+                                <StackPanel Grid.Column="1"
+                                            Spacing="4" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="13" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <Border Background="{Binding TypeBgBrush}"
+                                            CornerRadius="3"
+                                            Padding="6 2"
+                                            HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding TypeLabel}"
+                                                   Foreground="{Binding TypeBrush}"
+                                                   FontSize="10" FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Množství v nativní měně -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding QtyText}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"/>
+
+                                <!-- Hodnota v EUR -->
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding ValueText}"
+                                           FontSize="13" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"/>
+
+                                <!-- Alokace: bar + % -->
+                                <StackPanel Grid.Column="4"
+                                            Orientation="Horizontal"
+                                            Spacing="10"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+
+                                    <!-- Lišta -->
+                                    <Panel Width="100">
+                                        <Border Height="5" CornerRadius="3"
+                                                Background="{DynamicResource BrushBorder}"/>
+                                        <Border Width="{Binding BarWidthPx}"
+                                                MaxWidth="100"
+                                                Height="5" CornerRadius="3"
+                                                Background="{Binding IconBrush}"
+                                                HorizontalAlignment="Left"/>
+                                    </Panel>
+
+                                    <!-- Procento -->
+                                    <TextBlock Text="{Binding AllocText}"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               VerticalAlignment="Center"
+                                               MinWidth="48"
+                                               TextAlignment="Right"/>
+                                </StackPanel>
+
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+
+                    <!-- Tenký oddělovač -->
+                    <ItemsControl.ItemContainerTheme>
+                        <ControlTheme TargetType="ContentPresenter">
+                            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+                            <Setter Property="BorderThickness" Value="0 0 0 1"/>
+                        </ControlTheme>
+                    </ItemsControl.ItemContainerTheme>
+                </ItemsControl>
+
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

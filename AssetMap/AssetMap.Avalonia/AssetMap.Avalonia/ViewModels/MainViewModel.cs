@@ -5,6 +5,7 @@ using AssetMap.Entities.Enums;
 using AssetMap.Repos;
 using AssetMap.Repos.Accounts;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -46,6 +47,9 @@ public partial class MainViewModel : ViewModelBase
     // VM pro stránku Transakcí
     public TransactionsViewModel TransactionsVM { get; }
 
+    // VM pro stránku Aktiv
+    public AssetsViewModel AssetsVM { get; }
+
     // ── Dashboard data ────────────────────────────────────────
     private string _dashboardTotal    = "–";
     private string _dashboardChange   = "";
@@ -73,13 +77,51 @@ public partial class MainViewModel : ViewModelBase
         private set { _dashboardRecentTxs = value; OnPropertyChanged(); }
     }
 
+    // ── Nastavení — Měna ──────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyEur))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyCzk))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyUsd))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyGbp))]
+    [NotifyPropertyChangedFor(nameof(IsCurrencyChf))]
+    private string _displayCurrency = SettingsService.Current.DisplayCurrency;
+
+    public bool IsCurrencyEur => DisplayCurrency == "EUR";
+    public bool IsCurrencyCzk => DisplayCurrency == "CZK";
+    public bool IsCurrencyUsd => DisplayCurrency == "USD";
+    public bool IsCurrencyGbp => DisplayCurrency == "GBP";
+    public bool IsCurrencyChf => DisplayCurrency == "CHF";
+
+    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR", 1.00);
+    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK", 25.20);
+    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD", 1.08);
+    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP", 0.86);
+    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF", 0.95);
+
+    private void ApplyCurrency(string code, double eurToDisplay)
+    {
+        DisplayCurrency = code;
+        AccountRepo.SetDisplayCurrency(code, eurToDisplay);
+        SettingsService.Current.DisplayCurrency = code;
+        SettingsService.Save();
+        _ = AccountRepo.RefreshAsync();
+    }
+
     public MainViewModel()
     {
-        AccountsVM = new AccountsViewModel();
+        // Inicializace kurzu z uložených nastavení
+        AccountRepo.SetDisplayCurrency(
+            SettingsService.Current.DisplayCurrency,
+            CurrencyRateFor(SettingsService.Current.DisplayCurrency));
+
+        AccountsVM     = new AccountsViewModel();
         TransactionsVM = new TransactionsViewModel();
+        AssetsVM       = new AssetsViewModel();
         BuildDashboard();
         // Dashboard se taky aktualizuje po každém price refreshi
-        AccountRepo.DataRefreshed += BuildDashboard;
+        // DŮLEŽITÉ: UIThread.Post zajistí že BuildDashboard běží AŽ po AccountsVM.LoadAccounts
+        // (AccountsVM subscribuje první → jeho Post je ve frontě dřív)
+        AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
         PriceRefreshService.Start();
     }
 
@@ -124,6 +166,15 @@ public partial class MainViewModel : ViewModelBase
     private static string FormatCurrency(double v) =>
         ((long)System.Math.Round(v))
             .ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
+
+    internal static double CurrencyRateFor(string code) => code switch
+    {
+        "CZK" => 25.20,
+        "USD" => 1.08,
+        "GBP" => 0.86,
+        "CHF" => 0.95,
+        _     => 1.0,  // EUR default
+    };
 
     // ── Sidebar toggle ────────────────────────────────────────
     [ObservableProperty]

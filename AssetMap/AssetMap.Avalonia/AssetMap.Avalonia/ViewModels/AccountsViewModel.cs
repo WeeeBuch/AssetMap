@@ -102,8 +102,13 @@ public partial class AccountsViewModel : ViewModelBase
             .ToArray();
     }
 
-    // ── Měna pro přepočet (TODO: načíst z API) ────────────────
-    [ObservableProperty] private string _displayCurrency = "EUR";
+    // ── Měna pro zobrazení — synchronizovaná s AccountRepo ────
+    private string _displayCurrency = AccountRepo.DisplayCurrency;
+    public string DisplayCurrency
+    {
+        get => _displayCurrency;
+        private set { _displayCurrency = value; OnPropertyChanged(); }
+    }
 
     // ── Init ──────────────────────────────────────────────────
     public AccountsViewModel()
@@ -160,6 +165,7 @@ public partial class AccountsViewModel : ViewModelBase
     // ── Načtení dat z repo ────────────────────────────────────
     private void LoadAccounts(IReadOnlyList<AccountData> data)
     {
+        DisplayCurrency = AccountRepo.DisplayCurrency;
         Accounts.Clear();
         SelectedAccount = null;
 

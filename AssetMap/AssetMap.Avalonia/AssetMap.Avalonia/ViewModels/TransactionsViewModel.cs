@@ -38,7 +38,8 @@ public partial class TransactionsViewModel : ViewModelBase
         string    AccountName,
         bool      IsCredit,
         DateTime  Date,
-        double    AbsAmount
+        double    AbsAmount,
+        double    AbsConverted   // v display měně — pro statistiky
     );
 
     private List<RawRow> _all = [];
@@ -106,27 +107,32 @@ public partial class TransactionsViewModel : ViewModelBase
             .SelectMany(d =>
             {
                 var acctBrush = AccountCardViewModel.BrushFor(d.Account.AccountType, d.Account.Name);
+                // Kurz: native → display měna
+                double convRate = d.ConvertedBalance.HasValue && d.CurrentBalance > 0
+                    ? d.ConvertedBalance.Value / d.CurrentBalance
+                    : 1.0;
                 return d.RecentTransactions.Select(tx =>
                 {
-                    bool   isCredit = tx.Type == TransactionType.Deposit;
-                    double qty      = (double)tx.Quantity;
-                    string amtStr   = (isCredit ? "+" : "−")
-                                      + qty.ToString("N2", CultureInfo.CurrentCulture)
-                                      + " " + d.BaseCurrency;
+                    bool   isCredit  = tx.Type == TransactionType.Deposit;
+                    double qty       = (double)tx.Quantity;
+                    double converted = qty * convRate;
+                    string amtStr    = (isCredit ? "+" : "−")
+                                       + qty.ToString("N2", CultureInfo.CurrentCulture)
+                                       + " " + d.BaseCurrency;
 
                     var item = new TxRowItem(
-                        IconText:    isCredit ? "↓" : "↑",
-                        IconBrush:   isCredit ? creditBrush : (IBrush)debitBrush,
-                        AccountName: d.Account.Name,
+                        IconText:     isCredit ? "↓" : "↑",
+                        IconBrush:    isCredit ? creditBrush : (IBrush)debitBrush,
+                        AccountName:  d.Account.Name,
                         AccountBrush: acctBrush,
-                        Description: isCredit ? "Příchozí platba" : "Odchozí platba",
-                        Date:        tx.Date.ToString("dd. MM. yyyy"),
-                        RawDate:     tx.Date,
-                        Amount:      amtStr,
-                        IsCredit:    isCredit
+                        Description:  isCredit ? "Příchozí platba" : "Odchozí platba",
+                        Date:         tx.Date.ToString("dd. MM. yyyy"),
+                        RawDate:      tx.Date,
+                        Amount:       amtStr,
+                        IsCredit:     isCredit
                     );
 
-                    return new RawRow(item, d.Account.Name, isCredit, tx.Date, qty);
+                    return new RawRow(item, d.Account.Name, isCredit, tx.Date, qty, converted);
                 });
             })
             .OrderByDescending(r => r.Date)
@@ -158,10 +164,11 @@ public partial class TransactionsViewModel : ViewModelBase
             ? _all
             : _all.Where(r => r.AccountName == acctFilter).ToList();
 
-        TotalIn  = "+" + statsBase.Where(r =>  r.IsCredit).Sum(r => r.AbsAmount)
-                             .ToString("N0", CultureInfo.CurrentCulture);
-        TotalOut = "−" + statsBase.Where(r => !r.IsCredit).Sum(r => r.AbsAmount)
-                             .ToString("N0", CultureInfo.CurrentCulture);
+        string cur = AccountRepo.DisplayCurrency;
+        TotalIn  = "+" + statsBase.Where(r =>  r.IsCredit).Sum(r => r.AbsConverted)
+                             .ToString("N0", CultureInfo.CurrentCulture) + " " + cur;
+        TotalOut = "−" + statsBase.Where(r => !r.IsCredit).Sum(r => r.AbsConverted)
+                             .ToString("N0", CultureInfo.CurrentCulture) + " " + cur;
         Count    = filtered.Count;
     }
 }
