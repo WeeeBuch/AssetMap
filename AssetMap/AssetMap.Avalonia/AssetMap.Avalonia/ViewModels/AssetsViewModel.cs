@@ -50,7 +50,7 @@ public partial class AssetsViewModel : ViewModelBase
     public ObservableCollection<AssetRowItem> Assets { get; } = [];
 
     // Celková hodnota + počet
-    private string _totalText = "0 EUR";
+    private string _totalText = "0";
     private int    _assetCount;
 
     public string TotalText
@@ -119,7 +119,7 @@ public partial class AssetsViewModel : ViewModelBase
             TypeRows.Add(new AssetTypeRow(
                 TypeLabel:  TypeLabel(t.Type),
                 Brush:      TypeBrush(t.Type),
-                ValueText:  Fmt(t.Eur) + " EUR",
+                ValueText:  Fmt(t.Eur) + " " + cur,
                 AllocText:  pct.ToString("N1", CultureInfo.CurrentCulture) + " %"
             ));
         }

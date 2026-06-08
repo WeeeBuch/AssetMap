@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Versioning;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 
 namespace AssetMap.Repos.Sync;
 
 /// <summary>
-/// Fronta čekajících mutací — přetrvává napříč restarty (pending.json).
-/// Thread-safe.
+/// Fronta čekajících mutací — přetrvává napříč restarty (pending.bin).
+/// Thread-safe. Šifrováno přes DPAPI na Windows, plaintext fallback jinak.
 /// </summary>
 public static class PendingQueue
 {
@@ -16,7 +19,8 @@ public static class PendingQueue
     public static string DataDir { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AssetMap");
 
-    private static string FilePath => Path.Combine(DataDir, "pending.json");
+    private static string FilePath       => Path.Combine(DataDir, "pending.bin");
+    private static string LegacyFilePath => Path.Combine(DataDir, "pending.json");
 
     // ── State ──────────────────────────────────────────────
     private static readonly Lock _lock = new();
@@ -69,16 +73,30 @@ public static class PendingQueue
     }
 
     // ── Persistence ────────────────────────────────────────
-    private static readonly JsonSerializerOptions _json = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions _json = new() { WriteIndented = false };
 
     private static void Load()
     {
         try
         {
+            // Nový šifrovaný soubor
             if (File.Exists(FilePath))
             {
-                var text = File.ReadAllText(FilePath);
+                byte[] stored = File.ReadAllBytes(FilePath);
+                byte[] plain  = Decrypt(stored);
+                string text   = Encoding.UTF8.GetString(plain);
                 _queue = JsonSerializer.Deserialize<List<PendingMutation>>(text, _json) ?? [];
+                return;
+            }
+
+            // Fallback: starý plaintext soubor (migrace)
+            if (File.Exists(LegacyFilePath))
+            {
+                string text = File.ReadAllText(LegacyFilePath);
+                _queue = JsonSerializer.Deserialize<List<PendingMutation>>(text, _json) ?? [];
+                // Migrace: přepiš šifrovaně
+                Save();
+                File.Delete(LegacyFilePath);
             }
         }
         catch { _queue = []; }
@@ -89,8 +107,43 @@ public static class PendingQueue
         try
         {
             Directory.CreateDirectory(DataDir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(_queue, _json));
+            byte[] plain  = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_queue, _json));
+            byte[] stored = Encrypt(plain);
+            File.WriteAllBytes(FilePath, stored);
         }
         catch { /* disk chyba — ignorovat */ }
+    }
+
+    // ── Šifrování (DPAPI / plain fallback) ─────────────────
+    private static byte[] Encrypt(byte[] data)
+    {
+        if (OperatingSystem.IsWindows())
+            return DpapiEncrypt(data);
+        return data;
+    }
+
+    private static byte[] Decrypt(byte[] data)
+    {
+        if (OperatingSystem.IsWindows())
+            return DpapiDecrypt(data);
+        return data;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static byte[] DpapiEncrypt(byte[] data) =>
+        ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+
+    [SupportedOSPlatform("windows")]
+    private static byte[] DpapiDecrypt(byte[] data)
+    {
+        try
+        {
+            return ProtectedData.Unprotect(data, null, DataProtectionScope.CurrentUser);
+        }
+        catch
+        {
+            // Nejsou DPAPI šifrovaná (starý / plaintext formát) — vrať as-is
+            return data;
+        }
     }
 }

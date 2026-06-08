@@ -1,7 +1,12 @@
 using System;
+using System.IO;
+using System.Threading.Tasks;
+using AssetMap.Avalonia.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 
 namespace AssetMap.Avalonia.Views;
 
@@ -65,5 +70,34 @@ public partial class AccountsView : UserControl
     {
         _dragging   = false;
         _hasDragged = false;
+    }
+
+    // ── Import CSV ────────────────────────────────────────────
+    private async void ImportCsv_Click(object? sender, RoutedEventArgs e)
+    {
+        var vm = DataContext as AccountsViewModel;
+        if (vm?.SelectedAccount is null) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null) return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title         = "Vyberte CSV soubor",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("CSV soubor") { Patterns = ["*.csv"] },
+                new FilePickerFileType("Všechny soubory")  { Patterns = ["*.*"] },
+            ],
+        });
+
+        if (files.Count == 0) return;
+
+        await using var stream = await files[0].OpenReadAsync();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        await vm.RunImportAsync(vm.SelectedAccount.AccountId, files[0].Name, ms.ToArray());
     }
 }

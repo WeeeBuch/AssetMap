@@ -302,7 +302,7 @@
                     IsVisible="{Binding HasSelectedAccount}">
 
             <!-- Hlavička detailu -->
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Text="{Binding SelectedAccount.AccountName}"
                                FontSize="17" FontWeight="SemiBold"
@@ -328,8 +328,20 @@
                                Foreground="{DynamicResource BrushTextSecondary}"/>
                 </StackPanel>
 
-                <!-- Upravit -->
+                <!-- Import CSV -->
                 <Button Grid.Column="2"
+                        Classes="ghost"
+                        Click="ImportCsv_Click"
+                        VerticalAlignment="Top"
+                        Width="30" Height="30" Padding="0" CornerRadius="8"
+                        ToolTip.Tip="Importovat CSV (Revolut, Trading212, generic)"
+                        Margin="0 0 4 0">
+                    <TextBlock Text="📥" FontSize="13"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- Upravit -->
+                <Button Grid.Column="3"
                         Classes="ghost"
                         Command="{Binding OpenEditAccountCommand}"
                         VerticalAlignment="Top"
@@ -342,7 +354,7 @@
                 </Button>
 
                 <!-- Smazat -->
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Classes="ghost"
                         Command="{Binding DeleteAccountCommand}"
                         VerticalAlignment="Top"
@@ -354,7 +366,7 @@
                 </Button>
 
                 <!-- Zavřít detail -->
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Classes="ghost"
                         Command="{Binding CloseDetailCommand}"
                         VerticalAlignment="Top"
@@ -367,6 +379,22 @@
                                VerticalAlignment="Center"/>
                 </Button>
             </Grid>
+
+            <!-- Import status — úspěch -->
+            <Border CornerRadius="6" Padding="12 8"
+                    Background="#1A00E57A" BorderBrush="#00E57A" BorderThickness="1"
+                    IsVisible="{Binding ImportStatusOk}">
+                <TextBlock Text="{Binding ImportStatusText}" FontSize="12"
+                           Foreground="{DynamicResource BrushSuccess}"/>
+            </Border>
+
+            <!-- Import status — chyba -->
+            <Border CornerRadius="6" Padding="12 8"
+                    Background="#1AFF3355" BorderBrush="#FF3355" BorderThickness="1"
+                    IsVisible="{Binding ImportStatusError}">
+                <TextBlock Text="{Binding ImportStatusText}" FontSize="12"
+                           Foreground="{DynamicResource BrushDanger}"/>
+            </Border>
 
             <!-- Graf vývoje + tečky transakcí -->
             <Border Classes="card" Padding="4 8 4 4">

@@ -396,6 +396,58 @@ public static class AccountRepo
         await TrySendAndDequeue(mutation);
     }
 
+    // ── POST /api/accounts/{id}/import ───────────────────
+    /// <summary>
+    /// Odešle CSV soubor na server k importu transakcí.
+    /// Vrátí výsledek nebo null pokud server nedostupný.
+    /// </summary>
+    public static async Task<ImportCsvResult?> ImportCsvAsync(
+        Guid accountId, string fileName, byte[] csvBytes)
+    {
+        try
+        {
+            ApplyAuthHeader();
+            using var content = new MultipartFormDataContent();
+            using var fileContent = new ByteArrayContent(csvBytes);
+            fileContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+            content.Add(fileContent, "file", fileName);
+
+            var resp = await _http.PostAsync(
+                $"{_serverUrl.TrimEnd('/')}/api/accounts/{accountId}/import", content);
+
+            if (!resp.IsSuccessStatusCode)
+                return new ImportCsvResult
+                {
+                    Success      = false,
+                    ErrorMessage = $"Server vrátil {(int)resp.StatusCode}: {resp.ReasonPhrase}",
+                };
+
+            var json   = await resp.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ImportCsvResult>(json, _json);
+            if (result is not null)
+            {
+                result.Success = true;
+                await RefreshAsync();
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return new ImportCsvResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    public class ImportCsvResult
+    {
+        public bool   Success       { get; set; }
+        public string? ErrorMessage  { get; set; }
+        public string DetectedFormat { get; set; } = "";
+        public int    TotalRows     { get; set; }
+        public int    SuccessCount  { get; set; }
+        public int    ErrorCount    { get; set; }
+    }
+
     // ── Shared: send + dequeue logic ──────────────────────
     private static async Task TrySendAndDequeue(PendingMutation mutation)
     {

@@ -50,7 +50,9 @@ public class Program
         // ── Migrace při startu ────────────────────────────────────
         using (var scope = app.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
             // Vytvoří složku ~/.assetmap pokud neexistuje (SQLite)
             if (provider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
             {
@@ -59,6 +61,36 @@ public class Program
                     Directory.CreateDirectory(dir);
             }
             await db.Database.MigrateAsync();
+
+            // ── First-run: nastav API klíč pro seed uživatele ─────
+            //
+            // Priorita:
+            //   1. Env proměnná ASSETMAP_API_KEY / appsettings ApiKey → nastav na seed user
+            //   2. Seed user nemá klíč → vygeneruj nový a zaloguj do konzole
+            //   3. Seed user má klíč → dev mode (žádná akce)
+            var seedId   = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var seedUser = await db.Users.FindAsync(seedId);
+            if (seedUser is not null)
+            {
+                string? cfgKey = builder.Configuration["ApiKey"];
+
+                if (!string.IsNullOrWhiteSpace(cfgKey) && seedUser.ApiKey != cfgKey)
+                {
+                    // Přepis ze stare konfigurace (env proměnná / appsettings)
+                    seedUser.ApiKey = cfgKey.Trim();
+                    await db.SaveChangesAsync();
+                    logger.LogInformation("ApiKey nastaven z konfigurace na seed uživatele.");
+                }
+                else if (string.IsNullOrEmpty(seedUser.ApiKey))
+                {
+                    // DEV MODE: seed user nemá klíč → server je otevřený
+                    logger.LogWarning("═══════════════════════════════════════════════════════");
+                    logger.LogWarning("  ⚠  AssetMap běží v DEV MÓDU — bez autentizace!");
+                    logger.LogWarning("  Pro zabezpečení nastav ASSETMAP_API_KEY nebo");
+                    logger.LogWarning("  použij POST /api/users/generate-key.");
+                    logger.LogWarning("═══════════════════════════════════════════════════════");
+                }
+            }
         }
 
         // ── Pipeline ──────────────────────────────────────────────

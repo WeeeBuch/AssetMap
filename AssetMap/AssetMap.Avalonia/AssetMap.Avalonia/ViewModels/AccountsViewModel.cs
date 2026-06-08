@@ -30,6 +30,48 @@ public partial class AccountsViewModel : ViewModelBase
 
     public bool HasSelectedAccount => SelectedAccount is not null;
 
+    // ── Import CSV stav ───────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ImportStatusOk))]
+    [NotifyPropertyChangedFor(nameof(ImportStatusError))]
+    private string? _importStatusText;
+
+    public bool ImportStatusOk    => ImportStatusText is not null && !ImportStatusText.StartsWith("✗");
+    public bool ImportStatusError => ImportStatusText is not null &&  ImportStatusText.StartsWith("✗");
+
+    [ObservableProperty] private bool _isImporting;
+
+    public async Task RunImportAsync(Guid accountId, string fileName, byte[] csvBytes)
+    {
+        IsImporting      = true;
+        ImportStatusText = null;
+        try
+        {
+            var result = await AccountRepo.ImportCsvAsync(accountId, fileName, csvBytes);
+            if (result is null)
+            {
+                ImportStatusText = "✗ Server nedostupný — import selhal";
+                return;
+            }
+            if (!result.Success)
+            {
+                ImportStatusText = $"✗ {result.ErrorMessage}";
+                return;
+            }
+            ImportStatusText = result.ErrorCount == 0
+                ? $"✓ Importováno {result.SuccessCount} transakcí ({result.DetectedFormat})"
+                : $"✓ {result.SuccessCount} OK, {result.ErrorCount} chyb ({result.DetectedFormat})";
+        }
+        catch (Exception ex)
+        {
+            ImportStatusText = $"✗ {ex.Message}";
+        }
+        finally
+        {
+            IsImporting = false;
+        }
+    }
+
     // ── Přehledové grafy (viditelné když nic není vybráno) ────
     public PieSliceData[] PieSlices { get; private set; } = [];
 

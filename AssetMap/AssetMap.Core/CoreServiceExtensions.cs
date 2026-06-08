@@ -10,6 +10,7 @@ public static class CoreServiceExtensions
         services.AddScoped<IPortfolioService, PortfolioService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IImportService, ImportService>();
         return services;
     }
 }
