@@ -221,13 +221,33 @@
                     BorderBrush="{DynamicResource BrushBorder}"
                     BorderThickness="0 0 0 1"
                     Padding="24 0">
-                <Grid ColumnDefinitions="*,Auto">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+
+                    <!-- Offline banner -->
+                    <Border Grid.Column="1"
+                            Background="#30FF9900"
+                            BorderBrush="#70FF9900"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10 4"
+                            Margin="0 0 12 0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsOffline}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="⚡" FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding OfflineBannerText}"
+                                       FontSize="11" FontWeight="Medium"
+                                       Foreground="#FFCC66"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="{Binding PageTitle}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrushTextPrimary}"
                                VerticalAlignment="Center"/>
 
-                    <StackPanel Grid.Column="1"
+                    <StackPanel Grid.Column="2"
                                 Orientation="Horizontal"
                                 Spacing="8"
                                 VerticalAlignment="Center">
@@ -622,5 +642,51 @@
             </Panel>
 
         </Grid>
+
+        <!-- ══════════════════════════════════════════
+             SHUTDOWN OVERLAY — zobrazí se při zavírání
+             s neuloženými změnami
+             ══════════════════════════════════════════ -->
+        <Panel Grid.Column="0" Grid.ColumnSpan="2"
+               IsVisible="{Binding IsShuttingDown}"
+               ZIndex="200">
+            <!-- Backdrop -->
+            <Border Background="#CC000000"/>
+
+            <!-- Card -->
+            <Border Width="400"
+                    CornerRadius="14"
+                    Background="{DynamicResource BrushSurface}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    Padding="32 28"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 12 48 4 #70000000">
+                <StackPanel Spacing="16">
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="💾" FontSize="22" VerticalAlignment="Center"/>
+                        <TextBlock Text="Ukládám změny"
+                                   FontSize="17" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <ProgressBar IsIndeterminate="{Binding IsSyncingOnShutdown}"
+                                 Height="3"
+                                 CornerRadius="2"
+                                 Foreground="{DynamicResource BrushAccent}"
+                                 Background="{DynamicResource BrushSurfaceAlt}"/>
+
+                    <TextBlock Text="{Binding ShutdownStatus}"
+                               FontSize="13"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               TextWrapping="Wrap"/>
+
+                </StackPanel>
+            </Border>
+        </Panel>
+
     </Grid>
 </Window>

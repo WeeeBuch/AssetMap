@@ -7,7 +7,8 @@ namespace AssetMap.Avalonia.Services;
 
 public class AppSettings
 {
-    public string  ServerUrl        { get; set; } = "http://localhost:5000";
+    public string  ServerUrl        { get; set; } = "http://localhost:5033";
+    public string  ApiKey           { get; set; } = "";
     public bool    IsDarkTheme      { get; set; } = true;
     public string  Accent           { get; set; } = "Blue";
     public string  DisplayCurrency  { get; set; } = "USD";

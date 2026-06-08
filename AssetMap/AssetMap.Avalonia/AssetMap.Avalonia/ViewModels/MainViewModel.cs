@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AssetMap.Avalonia.Services;
 using AssetMap.Entities.Enums;
 using AssetMap.Repos;
 using AssetMap.Repos.Accounts;
+using AssetMap.Repos.Sync;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -110,7 +112,17 @@ public partial class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
-        // Inicializace kurzu z uložených nastavení (zatím fallback hodnoty)
+        // ── Wire server config z nastavení ────────────────────
+        AccountRepo.ServerUrl = SettingsService.Current.ServerUrl;
+        AccountRepo.ApiKey    = SettingsService.Current.ApiKey;
+
+        // DataDir pro cache a frontu = stejná složka jako settings
+        string dataDir = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AssetMap");
+        LocalCacheService.DataDir = dataDir;
+        PendingQueue.DataDir      = dataDir;
+
+        // ── Inicializace kurzu ────────────────────────────────
         AccountRepo.SetDisplayCurrency(
             SettingsService.Current.DisplayCurrency,
             CurrencyRateFor(SettingsService.Current.DisplayCurrency));
@@ -119,15 +131,27 @@ public partial class MainViewModel : ViewModelBase
         TransactionsVM = new TransactionsViewModel();
         AssetsVM       = new AssetsViewModel();
         BuildDashboard();
-        AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
-        PriceRefreshService.Start();
 
-        // Stáhni živé kurzy (frankfurter.app/ECB) — po dokončení re-apply a refresh
+        AccountRepo.DataRefreshed += () => Dispatcher.UIThread.Post(BuildDashboard);
+
+        // ── Offline / online stav ─────────────────────────────
+        SyncService.IsOnlineChanged += online =>
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsOffline    = !online;
+                PendingCount = PendingQueue.Count;
+            });
+        PendingQueue.Changed += () =>
+            Dispatcher.UIThread.Post(() => PendingCount = PendingQueue.Count);
+
+        // ── Background sync ───────────────────────────────────
+        PriceRefreshService.Start();
+        SyncService.Start();
+
+        // ── FX kurzy ─────────────────────────────────────────
         FxRates.Updated += () => Dispatcher.UIThread.Post(() =>
             ApplyCurrency(SettingsService.Current.DisplayCurrency));
 
-        // Nejdřív historii (snapshoty), pak aktuální kurz
-        // Až budou oboje hotové, AccountRepo.RefreshAsync() přepočítá BalanceHistory z reálných dat
         _ = FxRates.RefreshHistoryAsync().ContinueWith(_ => FxRates.RefreshAsync());
     }
 
@@ -237,19 +261,46 @@ public partial class MainViewModel : ViewModelBase
         SettingsService.Save();
     }
 
+    // ── Offline banner ────────────────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OfflineBannerText))]
+    private bool _isOffline;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OfflineBannerText))]
+    private int _pendingCount;
+
+    public string OfflineBannerText =>
+        PendingCount > 0
+            ? $"Offline  ·  {PendingCount} neuložených změn"
+            : "Offline  ·  data z cache";
+
+    // ── Shutdown overlay ──────────────────────────────────────
+    [ObservableProperty] private bool   _isShuttingDown;
+    [ObservableProperty] private bool   _isSyncingOnShutdown;
+    [ObservableProperty] private string _shutdownStatus = "";
+
     // ── Nastavení — Připojení ──────────────────────────────────
-    [ObservableProperty] private string _serverUrl = SettingsService.Current.ServerUrl;
-    [ObservableProperty] private bool _isTestingConnection;
+    [ObservableProperty] private string _serverUrl  = SettingsService.Current.ServerUrl;
+    [ObservableProperty] private string _apiKey     = SettingsService.Current.ApiKey;
+    [ObservableProperty] private bool   _isTestingConnection;
     [ObservableProperty] private string? _connectionStatus;
-    [ObservableProperty] private bool _connectionOk;
+    [ObservableProperty] private bool   _connectionOk;
 
     partial void OnServerUrlChanged(string value)
     {
         SettingsService.Current.ServerUrl = value;
         SettingsService.Save();
-        // Reset stavu při změně URL
+        AccountRepo.ServerUrl = value;
         ConnectionStatus = null;
         ConnectionOk = false;
+    }
+
+    partial void OnApiKeyChanged(string value)
+    {
+        SettingsService.Current.ApiKey = value;
+        SettingsService.Save();
+        AccountRepo.ApiKey = value;
     }
 
     [RelayCommand]

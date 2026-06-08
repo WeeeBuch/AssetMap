@@ -26,4 +26,7 @@ public record AccountData
 
     // Posledních N transakcí sestupně (pro seznam + tečky v grafu)
     public required IReadOnlyList<Transaction> RecentTransactions { get; init; }
+
+    /// <summary>True = lokálně vytvořeno offline, ještě nebylo synchonizováno se serverem.</summary>
+    public bool IsPending { get; init; }
 }
