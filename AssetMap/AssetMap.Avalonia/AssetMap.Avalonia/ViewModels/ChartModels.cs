@@ -3,7 +3,7 @@ using Avalonia.Media;
 namespace AssetMap.Avalonia.ViewModels;
 
 /// <summary>Časové okno zobrazované v grafech.</summary>
-public enum ChartPeriod { D1, D7, M1, M3, Y1 }
+public enum ChartPeriod { D1, D7, M1, M3, Y1, All }
 
 /// <summary>Jeden výseč koláčového grafu.</summary>
 public class PieSliceData

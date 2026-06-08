@@ -1,12 +1,14 @@
 using AssetMap.Core.Models;
 using AssetMap.Core.Services;
+using AssetMap.Database;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AssetMap.API.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
-public class AccountsController(IAccountService accounts, IImportService importer) : ControllerBase
+public class AccountsController(IAccountService accounts, IImportService importer, AppDbContext db) : ControllerBase
 {
     /// <summary>Vrátí ID přihlášeného uživatele z kontextu (nastaven ApiKeyMiddleware).</summary>
     private Guid UserId => HttpContext.Items["UserId"] is Guid id ? id
@@ -79,5 +81,17 @@ public class AccountsController(IAccountService accounts, IImportService importe
         {
             return NotFound(ex.Message);
         }
+    }
+
+    /// <summary>Aktualizuje poznámku/popis transakce.</summary>
+    [HttpPatch("transactions/{txId:guid}/note")]
+    public async Task<IActionResult> UpdateTransactionNote(
+        Guid txId, [FromBody] string? note, CancellationToken ct)
+    {
+        var tx = await db.Transactions.FindAsync([txId], ct);
+        if (tx is null) return NotFound();
+        tx.Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        await db.SaveChangesAsync(ct);
+        return NoContent();
     }
 }

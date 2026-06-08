@@ -490,13 +490,53 @@
                                 <Border Height="12" IsVisible="{Binding AddIsAssetNone}"/>
 
                                 <!-- ── Počáteční zůstatek ─── -->
-                                <TextBlock Text="Počáteční zůstatek *"
-                                           FontSize="12" FontWeight="Medium"
-                                           Foreground="{DynamicResource BrushTextSecondary}"
-                                           Margin="0 0 0 5"/>
+                                <Grid ColumnDefinitions="*,8,Auto" Margin="0 0 0 5">
+                                    <TextBlock Grid.Column="0"
+                                               Text="Počáteční zůstatek"
+                                               FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0"
+                                               Text="(auto z výpisu)"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding AddHasCsv}"/>
+                                </Grid>
                                 <TextBox Text="{Binding AddBalanceText}"
-                                         PlaceholderText="0"
-                                         Margin="0 0 0 16"/>
+                                         PlaceholderText="0 — nebo importuj výpis níže"
+                                         Margin="0 0 0 8"/>
+
+                                <!-- ── Import výpisu při vytváření ─── -->
+                                <Grid ColumnDefinitions="*,8,Auto" Margin="0 0 0 16">
+                                    <Border Grid.Column="0"
+                                            CornerRadius="6" Padding="10 7"
+                                            Background="{DynamicResource BrushSurfaceAlt}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            IsVisible="{Binding AddHasCsv}">
+                                        <TextBlock Text="{Binding AddCsvLabel}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource BrushSuccess}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </Border>
+                                    <Button Grid.Column="2"
+                                            Classes="ghost"
+                                            Click="AttachCsv_Click"
+                                            Padding="12 7" CornerRadius="6"
+                                            ToolTip.Tip="Vybrat CSV výpis — balance + transakce se importují automaticky">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="📎" FontSize="12"/>
+                                            <TextBlock Text="Přiložit výpis" FontSize="12"
+                                                       IsVisible="{Binding !AddHasCsv}"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="Změnit výpis" FontSize="12"
+                                                       IsVisible="{Binding AddHasCsv}"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                             </StackPanel><!-- end AddShowAssetSection -->
 
                             <!-- ── Oddělovač ─── -->

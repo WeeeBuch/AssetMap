@@ -18,7 +18,11 @@ public record TransactionDisplayItem(
     string Date,
     string Amount,
     bool   IsCredit          // true = zelená, false = červená
-);
+)
+{
+    public Guid    TransactionId { get; init; }
+    public string? Note          { get; init; }
+};
 
 // ── Karta účtu ────────────────────────────────────────────────
 public partial class AccountCardViewModel : ViewModelBase
@@ -99,14 +103,18 @@ public partial class AccountCardViewModel : ViewModelBase
             .Select(tx =>
             {
                 bool isCredit = tx.Type == TransactionType.Deposit;
+                string desc = !string.IsNullOrWhiteSpace(tx.Note)
+                    ? tx.Note
+                    : (isCredit ? "Příchozí platba" : "Odchozí platba");
+
                 return new TransactionDisplayItem(
                     isCredit ? "↓" : "↑",
                     isCredit ? creditBrush : debitBrush,
-                    isCredit ? "Příchozí platba" : "Odchozí platba",
+                    desc,
                     tx.Date.ToString("dd. MM. yyyy"),
                     (isCredit ? "+" : "−") + ((double)tx.Quantity).ToString("N2") + " " + data.BaseCurrency,
                     isCredit
-                );
+                ) { TransactionId = tx.Id, Note = tx.Note };
             })
             .ToList();
 

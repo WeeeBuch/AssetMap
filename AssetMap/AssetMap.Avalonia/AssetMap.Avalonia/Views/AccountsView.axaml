@@ -396,12 +396,43 @@
                            Foreground="{DynamicResource BrushDanger}"/>
             </Border>
 
-            <!-- Graf vývoje + tečky transakcí -->
+            <!-- Graf vývoje + perioda -->
             <Border Classes="card" Padding="4 8 4 4">
-                <comp:SimpleLineChart Height="230"
-                                      BalanceHistory="{Binding SelectedAccount.BalanceHistory}"
-                                      DepositIndices="{Binding SelectedAccount.DepositIndices}"
-                                      WithdrawalIndices="{Binding SelectedAccount.WithdrawalIndices}"/>
+                <StackPanel Spacing="6">
+
+                    <!-- Hlavička + period toggle -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="8 2 4 0">
+                        <TextBlock Grid.Column="0"
+                                   Text="Vývoj zůstatku"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                   VerticalAlignment="Center"/>
+
+                        <Border Grid.Column="1"
+                                CornerRadius="7"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" Padding="2">
+                            <StackPanel Orientation="Horizontal" Spacing="0">
+                                <Button Classes="seg" Classes.on="{Binding IsDetailPeriodD7}"
+                                        Command="{Binding SetDetailPeriodD7Command}" Content="7d"/>
+                                <Button Classes="seg" Classes.on="{Binding IsDetailPeriodM1}"
+                                        Command="{Binding SetDetailPeriodM1Command}" Content="1M"/>
+                                <Button Classes="seg" Classes.on="{Binding IsDetailPeriodM3}"
+                                        Command="{Binding SetDetailPeriodM3Command}" Content="3M"/>
+                                <Button Classes="seg" Classes.on="{Binding IsDetailPeriodY1}"
+                                        Command="{Binding SetDetailPeriodY1Command}" Content="1R"/>
+                                <Button Classes="seg" Classes.on="{Binding IsDetailPeriodAll}"
+                                        Command="{Binding SetDetailPeriodAllCommand}" Content="Vše"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <comp:SimpleLineChart Height="220"
+                                          BalanceHistory="{Binding DetailHistory}"
+                                          DepositIndices="{Binding DetailDepositIndices}"
+                                          WithdrawalIndices="{Binding DetailWithdrawalIndices}"/>
+                </StackPanel>
             </Border>
 
             <!-- Legenda: tečky -->
@@ -446,47 +477,89 @@
                     <ItemsControl ItemsSource="{Binding SelectedAccount.Transactions}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:TransactionDisplayItem">
-                                <Grid ColumnDefinitions="36,12,*,Auto"
-                                      Margin="0 7">
+                                <StackPanel Margin="0 4">
 
-                                    <!-- Ikona -->
-                                    <Border Grid.Column="0"
-                                            Width="36" Height="36" CornerRadius="9"
-                                            Background="{Binding IconBrush}">
-                                        <TextBlock Text="{Binding IconText}"
-                                                   FontSize="13" FontWeight="Bold"
-                                                   Foreground="White"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                    </Border>
+                                    <!-- Normální řádek -->
+                                    <Grid ColumnDefinitions="36,12,*,Auto,8,Auto"
+                                          Margin="0 3">
 
-                                    <!-- Popis + datum -->
-                                    <StackPanel Grid.Column="2"
-                                                Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Description}"
-                                                   FontSize="13"
-                                                   Foreground="{DynamicResource BrushTextPrimary}"/>
-                                        <TextBlock Text="{Binding Date}"
-                                                   FontSize="11"
-                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                                    </StackPanel>
+                                        <!-- Ikona -->
+                                        <Border Grid.Column="0"
+                                                Width="36" Height="36" CornerRadius="9"
+                                                Background="{Binding IconBrush}">
+                                            <TextBlock Text="{Binding IconText}"
+                                                       FontSize="13" FontWeight="Bold"
+                                                       Foreground="White"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
 
-                                    <!-- Částka — dva TextBlocky (compiled binding) -->
-                                    <Panel Grid.Column="3" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Amount}"
-                                                   FontSize="13" FontWeight="Medium"
-                                                   Foreground="{DynamicResource BrushSuccess}"
-                                                   IsVisible="{Binding IsCredit}"/>
-                                        <TextBlock Text="{Binding Amount}"
-                                                   FontSize="13" FontWeight="Medium"
-                                                   Foreground="{DynamicResource BrushDanger}"
-                                                   IsVisible="{Binding !IsCredit}"/>
-                                    </Panel>
+                                        <!-- Popis + datum -->
+                                        <StackPanel Grid.Column="2"
+                                                    Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="13"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource BrushTextPrimary}"/>
+                                            <TextBlock Text="{Binding Date}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        </StackPanel>
 
-                                </Grid>
+                                        <!-- Částka -->
+                                        <Panel Grid.Column="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Amount}"
+                                                       FontSize="13" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushSuccess}"
+                                                       IsVisible="{Binding IsCredit}"/>
+                                            <TextBlock Text="{Binding Amount}"
+                                                       FontSize="13" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushDanger}"
+                                                       IsVisible="{Binding !IsCredit}"/>
+                                        </Panel>
+
+                                        <!-- Edit tlačítko -->
+                                        <Button Grid.Column="5"
+                                                Classes="ghost"
+                                                Command="{Binding $parent[ItemsControl].((vm:AccountsViewModel)DataContext).StartEditTransactionCommand}"
+                                                CommandParameter="{Binding}"
+                                                Width="26" Height="26" Padding="0" CornerRadius="6"
+                                                VerticalAlignment="Center"
+                                                ToolTip.Tip="Upravit poznámku">
+                                            <TextBlock Text="✏" FontSize="11"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Button>
+                                    </Grid>
+
+
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Inline edit panel (mimo ItemsControl — binds přímo na VM) -->
+                    <Border IsVisible="{Binding IsEditingTransaction}"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            CornerRadius="8" Padding="12 10" Margin="0 4">
+                        <Grid ColumnDefinitions="*,8,Auto,8,Auto">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding EditTransactionNote}"
+                                     PlaceholderText="Poznámka (popis transakce)…"
+                                     FontSize="13"/>
+                            <Button Grid.Column="2"
+                                    Classes="accent"
+                                    Command="{Binding SaveTransactionNoteCommand}"
+                                    Content="Uložit"
+                                    Padding="12 6"/>
+                            <Button Grid.Column="4"
+                                    Classes="ghost"
+                                    Command="{Binding CancelEditTransactionCommand}"
+                                    Content="Zrušit"
+                                    Padding="12 6"/>
+                        </Grid>
+                    </Border>
 
                 </StackPanel>
             </Border>

@@ -1,9 +1,11 @@
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AssetMap.Avalonia.ViewModels;
 using AssetMap.Repos.Sync;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 
 namespace AssetMap.Avalonia.Views;
 
@@ -53,5 +55,31 @@ public partial class MainWindow : Window
         }
 
         base.OnClosing(e);
+    }
+
+    // ── Přiložit CSV výpis při vytváření účtu ─────────────────────
+    private async void AttachCsv_Click(object? sender, RoutedEventArgs e)
+    {
+        var vm = (DataContext as MainViewModel)?.AccountsVM;
+        if (vm is null) return;
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title         = "Vyberte CSV výpis",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("CSV") { Patterns = ["*.csv"] },
+                new FilePickerFileType("Všechny soubory") { Patterns = ["*.*"] },
+            ],
+        });
+
+        if (files.Count == 0) return;
+
+        await using var stream = await files[0].OpenReadAsync();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        vm.AttachCsv(files[0].Name, ms.ToArray());
     }
 }

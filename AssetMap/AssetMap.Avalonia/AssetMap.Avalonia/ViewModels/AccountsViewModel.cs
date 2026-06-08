@@ -72,6 +72,76 @@ public partial class AccountsViewModel : ViewModelBase
         }
     }
 
+    // ── Editace poznámky transakce ────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditingTransaction))]
+    private Guid _editingTransactionId;
+
+    [ObservableProperty] private string _editTransactionNote = "";
+
+    public bool IsEditingTransaction => EditingTransactionId != Guid.Empty;
+
+    [RelayCommand]
+    private void StartEditTransaction(TransactionDisplayItem tx)
+    {
+        EditingTransactionId = tx.TransactionId;
+        EditTransactionNote  = tx.Note ?? tx.Description;
+    }
+
+    [RelayCommand]
+    private void CancelEditTransaction()
+    {
+        EditingTransactionId = Guid.Empty;
+        EditTransactionNote  = "";
+    }
+
+    [RelayCommand]
+    private async Task SaveTransactionNoteAsync()
+    {
+        if (EditingTransactionId == Guid.Empty) return;
+        var id   = EditingTransactionId;
+        var note = EditTransactionNote.Trim();
+
+        EditingTransactionId = Guid.Empty;
+        EditTransactionNote  = "";
+
+        bool ok = await AccountRepo.UpdateTransactionNoteAsync(id, note);
+        if (ok)
+            await AccountRepo.RefreshAsync();   // reload so Description updates
+    }
+
+    // ── Pending CSV pro nový účet ─────────────────────────────
+    private string?  _pendingCsvFileName;
+    private byte[]?  _pendingCsvBytes;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AddHasCsv))]
+    private string _addCsvLabel = "";
+
+    public bool AddHasCsv => !string.IsNullOrEmpty(AddCsvLabel);
+
+    /// <summary>Voláno z code-behind po výběru souboru v dialogu přidání účtu.</summary>
+    public void AttachCsv(string fileName, byte[] bytes)
+    {
+        _pendingCsvFileName = fileName;
+        _pendingCsvBytes    = bytes;
+        AddCsvLabel         = fileName;
+
+        // Zkus auto-vyplnit počáteční zůstatek z KB výpisu
+        double? initial = AccountRepo.ParseCsvInitialBalance(bytes);
+        if (initial.HasValue && double.TryParse(AddBalanceText, out _) == false)
+            AddBalanceText = initial.Value.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+        else if (initial.HasValue)
+            AddBalanceText = initial.Value.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void ClearPendingCsv()
+    {
+        _pendingCsvFileName = null;
+        _pendingCsvBytes    = null;
+        AddCsvLabel         = "";
+    }
+
     // ── Přehledové grafy (viditelné když nic není vybráno) ────
     public PieSliceData[] PieSlices { get; private set; } = [];
 
@@ -151,6 +221,91 @@ public partial class AccountsViewModel : ViewModelBase
             })
             .ToArray();
     }
+
+    // ── Perioda grafu detailu účtu ────────────────────────────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDetailPeriodD7))]
+    [NotifyPropertyChangedFor(nameof(IsDetailPeriodM1))]
+    [NotifyPropertyChangedFor(nameof(IsDetailPeriodM3))]
+    [NotifyPropertyChangedFor(nameof(IsDetailPeriodY1))]
+    [NotifyPropertyChangedFor(nameof(IsDetailPeriodAll))]
+    private ChartPeriod _detailChartPeriod = ChartPeriod.M3;
+
+    public bool IsDetailPeriodD7  => DetailChartPeriod == ChartPeriod.D7;
+    public bool IsDetailPeriodM1  => DetailChartPeriod == ChartPeriod.M1;
+    public bool IsDetailPeriodM3  => DetailChartPeriod == ChartPeriod.M3;
+    public bool IsDetailPeriodY1  => DetailChartPeriod == ChartPeriod.Y1;
+    public bool IsDetailPeriodAll => DetailChartPeriod == ChartPeriod.All;
+
+    [RelayCommand] private void SetDetailPeriodD7()  => DetailChartPeriod = ChartPeriod.D7;
+    [RelayCommand] private void SetDetailPeriodM1()  => DetailChartPeriod = ChartPeriod.M1;
+    [RelayCommand] private void SetDetailPeriodM3()  => DetailChartPeriod = ChartPeriod.M3;
+    [RelayCommand] private void SetDetailPeriodY1()  => DetailChartPeriod = ChartPeriod.Y1;
+    [RelayCommand] private void SetDetailPeriodAll() => DetailChartPeriod = ChartPeriod.All;
+
+    partial void OnDetailChartPeriodChanged(ChartPeriod value) => ApplyDetailPeriod();
+    partial void OnSelectedAccountChanged(AccountCardViewModel? value) => ApplyDetailPeriod();
+
+    // Filtrovaná data pro detail chart
+    private double[] _detailHistory         = [];
+    private int[]    _detailDepositIndices   = [];
+    private int[]    _detailWithdrawalIndices = [];
+
+    public double[] DetailHistory
+    {
+        get => _detailHistory;
+        private set { _detailHistory = value; OnPropertyChanged(); }
+    }
+    public int[] DetailDepositIndices
+    {
+        get => _detailDepositIndices;
+        private set { _detailDepositIndices = value; OnPropertyChanged(); }
+    }
+    public int[] DetailWithdrawalIndices
+    {
+        get => _detailWithdrawalIndices;
+        private set { _detailWithdrawalIndices = value; OnPropertyChanged(); }
+    }
+
+    private void ApplyDetailPeriod()
+    {
+        var acc = SelectedAccount;
+        if (acc is null || acc.BalanceHistory.Length == 0)
+        {
+            DetailHistory            = [];
+            DetailDepositIndices     = [];
+            DetailWithdrawalIndices  = [];
+            return;
+        }
+
+        int n = acc.BalanceHistory.Length;
+        int take = DetailChartPeriod switch
+        {
+            ChartPeriod.D7  => Math.Min(7,   n),
+            ChartPeriod.M1  => Math.Min(30,  n),
+            ChartPeriod.M3  => Math.Min(90,  n),
+            ChartPeriod.Y1  => Math.Min(365, n),
+            _               => n,   // All
+        };
+        if (take < 2) take = Math.Min(2, n);
+
+        int offset = n - take;
+        double[] raw = acc.BalanceHistory[offset..];
+
+        // BalanceHistory je v USD — přepočítej na nativní měnu
+        // Faktor = nativní zůstatek / poslední USD bod v celé historii
+        double usdLast  = acc.BalanceHistory[^1];
+        double nativeScale = usdLast > 1e-9 ? acc.RawBalance / usdLast : 1.0;
+        DetailHistory = raw.Select(v => v * nativeScale).ToArray();
+
+        DetailDepositIndices     = SliceIndices(acc.DepositIndices,    offset, take);
+        DetailWithdrawalIndices  = SliceIndices(acc.WithdrawalIndices, offset, take);
+    }
+
+    private static int[] SliceIndices(int[] src, int offset, int take) =>
+        src.Where(i => i >= offset && i < offset + take)
+           .Select(i => i - offset)
+           .ToArray();
 
     // ── Měna pro zobrazení — synchronizovaná s AccountRepo ────
     private string _displayCurrency = AccountRepo.DisplayCurrency;
@@ -727,17 +882,41 @@ public partial class AccountsViewModel : ViewModelBase
         {
             AccountRepo.UpdateAccount(_editingAccountId, AddName, AddInstitution,
                 ResolvedAddType, AddSelectedColorHex);
+            IsAddDialogOpen = false;
+            ResetAddForm();
         }
         else
         {
             double.TryParse(AddBalanceText.Replace(',', '.'),
                 NumberStyles.Any, CultureInfo.InvariantCulture, out double balance);
-            AccountRepo.AddAccount(AddName, AddInstitution, ResolvedAddType,
-                _addAssetSymbol, balance, _addAssetUsdPrice, AddSelectedColorHex);
-        }
 
-        IsAddDialogOpen = false;
-        ResetAddForm();
+            // Pokud je připojen CSV výpis, použij 0 jako základ — import ho nastaví správně
+            double startBalance = _pendingCsvBytes is not null ? 0 : balance;
+
+            AccountRepo.AddAccount(AddName, AddInstitution, ResolvedAddType,
+                _addAssetSymbol, startBalance, _addAssetUsdPrice, AddSelectedColorHex);
+
+            IsAddDialogOpen = false;
+
+            // Spusť import v pozadí (pokud byl CSV připojen)
+            var csvBytes = _pendingCsvBytes;
+            var csvName  = _pendingCsvFileName ?? "import.csv";
+            ResetAddForm();
+
+            if (csvBytes is not null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    // Počkej na potvrzení vytvoření účtu (server potřebuje chvíli)
+                    await Task.Delay(800);
+                    await AccountRepo.RefreshAsync();
+                    var created = AccountRepo.GetAll().LastOrDefault();
+                    if (created is null) return;
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                        await RunImportAsync(created.Account.Id, csvName, csvBytes));
+                });
+            }
+        }
     }
 
     private void ResetAddForm()
@@ -756,6 +935,7 @@ public partial class AccountsViewModel : ViewModelBase
         _addAssetSymbol   = "";
         _addAssetUsdPrice = 1.0;
         _assetSearchCts?.Cancel();
+        ClearPendingCsv();
     }
 
     // ── Načtení dat z repo ────────────────────────────────────

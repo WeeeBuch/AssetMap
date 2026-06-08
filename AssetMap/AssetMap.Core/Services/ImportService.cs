@@ -120,7 +120,7 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
                 {
                     "revolut"    => ParseRevolutRow(line),
                     "trading212" => ParseTrading212Row(line),
-                    "kb"         => ParseKbRow(line),
+                    "kb"         => ParseKbRow(line, account.BaseCurrency),
                     _            => ParseGenericRow(line),
                 };
 
@@ -153,6 +153,9 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
             }
         }
 
+        // Počáteční zůstatek z hlavičky (KB) — použijeme pro holding i snapshoty
+        decimal initialBalance = format == "kb" ? ParseKbInitialBalance(lines) : 0m;
+
         // Ulož všechny transakce najednou
         db.Transactions.AddRange(txsToAdd);
 
@@ -170,7 +173,11 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
             };
             db.Holdings.Add(holding);
         }
-        holding.Quantity = Math.Max(0m, holding.Quantity + holdingDelta);
+        // Pokud je účet čerstvý (0) a CSV obsahuje počáteční zůstatek, použij ho jako základ
+        decimal baseQty = (holding.Quantity == 0m && initialBalance > 0m)
+            ? initialBalance
+            : holding.Quantity;
+        holding.Quantity = Math.Max(0m, baseQty + holdingDelta);
 
         // Finalizuj batch
         batch.RowCount     = result.TotalRows;
@@ -184,10 +191,86 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
         await db.SaveChangesAsync(ct);
 
-        // Snapshot po importu
+        // Retroaktivně oprav PortfolioSnapshots z transakcí
+        await RebuildSnapshotsFromTransactionsAsync(
+            accountId, account.UserId, asset.Id, txsToAdd, initialBalance, ct);
+
+        // Snapshot pro dnešek (aktuální stav)
         await portfolio.TakeSnapshotAsync(accountId, ct);
 
         return result;
+    }
+
+    // ── Retroaktivní PortfolioSnapshots ────────────────────────────
+    private async Task RebuildSnapshotsFromTransactionsAsync(
+        Guid accountId, Guid userId, Guid assetId,
+        List<Transaction> txs, decimal initialBalance,
+        CancellationToken ct)
+    {
+        if (txs.Count == 0) return;
+
+        // Aktuální cena assetu v USD
+        var latestPrice = await db.PriceSnapshots
+            .Where(p => p.AssetId == assetId)
+            .OrderByDescending(p => p.Timestamp)
+            .Select(p => p.Price)
+            .FirstOrDefaultAsync(ct);
+        double priceUsd = latestPrice > 0 ? (double)latestPrice : 1.0;
+
+        // Kumulativní zůstatek per den (počínaje initialBalance)
+        var byDate = txs
+            .OrderBy(t => t.Date)
+            .GroupBy(t => t.Date.Date)
+            .ToList();
+
+        decimal running = initialBalance;
+        var dailies = new List<(DateTime Day, decimal Balance)>();
+
+        foreach (var grp in byDate)
+        {
+            foreach (var tx in grp.OrderBy(t => t.Date))
+                running += tx.Type == TransactionType.Deposit ? tx.Quantity : -tx.Quantity;
+            if (running < 0) running = 0m;
+            dailies.Add((grp.Key, running));
+        }
+
+        // Smaž staré snapshoty pro tyto dny (většinou 0 z doby před importem)
+        var datesToFix = dailies.Select(d => d.Day).ToList();
+        var old = await db.PortfolioSnapshots
+            .Where(s => s.AccountId == accountId && datesToFix.Contains(s.Timestamp.Date))
+            .ToListAsync(ct);
+        db.PortfolioSnapshots.RemoveRange(old);
+
+        // Vytvoř nové snapshoty ve 23:00 UTC každého dne
+        foreach (var (day, balance) in dailies)
+        {
+            db.PortfolioSnapshots.Add(new PortfolioSnapshot
+            {
+                Id         = Guid.NewGuid(),
+                UserId     = userId,
+                AccountId  = accountId,
+                TotalValue = balance * (decimal)priceUsd,
+                Timestamp  = DateTime.SpecifyKind(day.AddHours(23), DateTimeKind.Utc),
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    // ── KB: počáteční zůstatek z hlavičky ──────────────────────────
+    // Řádek: "Pocatecni zustatek;40470,07;;;;;..."
+    private static decimal ParseKbInitialBalance(string[] lines)
+    {
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("Pocatecni zustatek;", StringComparison.OrdinalIgnoreCase))
+            {
+                var cols = line.Split(';');
+                if (cols.Length > 1 && !string.IsNullOrWhiteSpace(cols[1]))
+                    try { return ParseDecimal(cols[1]); } catch { }
+            }
+        }
+        return 0m;
     }
 
     // ── Detekce formátu ─────────────────────────────────────────────
@@ -255,7 +338,7 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
     //                         Castka;Mena;OrigCastka;OrigMena;Kurz;VS;KS;SS;
     //                         IdentTransakce;TypTransakce;PopisProMne;ZpravaProPrijemce;...
     // Záporná Castka = výběr, kladná = příjem. Desetinný oddělovač = čárka.
-    private static ParsedRow? ParseKbRow(string line)
+    private static ParsedRow? ParseKbRow(string line, string? accountCurrency = null)
     {
         var cols = SplitCsv(line, ';');
         if (cols.Length < 5) return null;
@@ -265,6 +348,12 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         if (string.IsNullOrWhiteSpace(dateStr)) return null;
         DateTime date = ParseDate(dateStr);
 
+        // Col 5 = Mena — přeskoč řádky s jinou měnou než účet
+        string rowCurrency = cols.Length > 5 ? cols[5].Trim() : "";
+        if (!string.IsNullOrEmpty(accountCurrency) && !string.IsNullOrEmpty(rowCurrency) &&
+            !string.Equals(rowCurrency, accountCurrency, StringComparison.OrdinalIgnoreCase))
+            return null;
+
         // Col 4 = Castka
         string amtStr = cols[4].Trim();
         if (string.IsNullOrWhiteSpace(amtStr)) return null;
@@ -272,13 +361,16 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
         var type = amount >= 0 ? TransactionType.Deposit : TransactionType.Withdrawal;
 
-        // Note = protistrana + zpráva příjemci
+        // Note: typ transakce — protistrana — zpráva příjemci
         string name    = cols.Length > 3  ? cols[3].Trim()  : "";
+        string txType  = cols.Length > 13 ? cols[13].Trim() : "";
         string message = cols.Length > 15 ? cols[15].Trim() : "";
-        string? note = (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(message))
-            ? $"{name} – {message}"
-            : string.IsNullOrWhiteSpace(name) ? (string.IsNullOrWhiteSpace(message) ? null : message)
-                                               : name;
+
+        var noteParts = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrWhiteSpace(txType))  noteParts.Add(txType);
+        if (!string.IsNullOrWhiteSpace(name))    noteParts.Add(name);
+        if (!string.IsNullOrWhiteSpace(message)) noteParts.Add(message);
+        string? note = noteParts.Count > 0 ? string.Join(" — ", noteParts) : null;
 
         return new ParsedRow(date, type, Math.Abs(amount), note);
     }

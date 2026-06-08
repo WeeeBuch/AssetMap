@@ -448,6 +448,56 @@ public static class AccountRepo
         public int    ErrorCount    { get; set; }
     }
 
+    // ── PATCH /api/accounts/transactions/{id}/note ────────
+    /// <summary>Aktualizuje poznámku transakce na serveru.</summary>
+    public static async Task<bool> UpdateTransactionNoteAsync(Guid transactionId, string? note)
+    {
+        try
+        {
+            ApplyAuthHeader();
+            var json    = System.Text.Json.JsonSerializer.Serialize(note);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var resp    = await _http.PatchAsync(
+                $"{_serverUrl.TrimEnd('/')}/api/accounts/transactions/{transactionId}/note",
+                content);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    // ── Parsování počátečního zůstatku z CSV ──────────────
+    /// <summary>
+    /// Pokusí se přečíst počáteční zůstatek z CSV výpisu.
+    /// Aktuálně podporuje KB+ formát (řádek "Pocatecni zustatek;40470,07;...").
+    /// Vrátí null pokud formát neznámý nebo číslo nelze přečíst.
+    /// </summary>
+    public static double? ParseCsvInitialBalance(byte[] csvBytes)
+    {
+        try
+        {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            var utf8  = System.Text.Encoding.UTF8.GetString(csvBytes);
+            var text  = utf8.Contains('?')
+                ? System.Text.Encoding.GetEncoding(1250).GetString(csvBytes)
+                : utf8;
+
+            foreach (var line in text.Split('\n'))
+            {
+                if (line.StartsWith("Pocatecni zustatek;", StringComparison.OrdinalIgnoreCase))
+                {
+                    var cols = line.Split(';');
+                    if (cols.Length > 1 &&
+                        double.TryParse(cols[1].Replace(',', '.').Trim(),
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out double v))
+                        return v;
+                }
+            }
+            return null;
+        }
+        catch { return null; }
+    }
+
     // ── Shared: send + dequeue logic ──────────────────────
     private static async Task TrySendAndDequeue(PendingMutation mutation)
     {
