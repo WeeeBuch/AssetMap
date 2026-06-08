@@ -28,6 +28,9 @@ public partial class AccountCardViewModel : ViewModelBase
     public AccountType AccountTypeValue { get; init; }
     public string?     IconColorHex     { get; init; }
 
+    /// <summary>True = lokálně vytvořeno offline, ještě neodesláno na server.</summary>
+    public bool IsPending { get; init; }
+
     // Zobrazovací data
     public string AccountName  { get; init; } = "";
     public string Institution  { get; init; } = "";
@@ -117,6 +120,7 @@ public partial class AccountCardViewModel : ViewModelBase
             AccountId         = acc.Id,
             AccountTypeValue  = acc.AccountType,
             IconColorHex      = data.IconColorHex,
+            IsPending         = data.IsPending,
             AccountName       = acc.Name,
             Institution       = acc.Institution ?? "",
             IconLetter        = acc.Name.Length > 0 ? acc.Name[0].ToString().ToUpper() : "?",

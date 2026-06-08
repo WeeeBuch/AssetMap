@@ -34,7 +34,7 @@
                                    FontSize="12" FontWeight="Medium"
                                    Foreground="{DynamicResource BrushTextSecondary}"/>
                         <TextBox Text="{Binding ServerUrl}"
-                                 PlaceholderText="http://localhost:5000"
+                                 PlaceholderText="http://localhost:5033"
                                  FontFamily="Consolas,monospace"/>
                     </StackPanel>
 
@@ -90,6 +90,28 @@
                                    FontSize="12"/>
                     </StackPanel>
                 </Border>
+
+                <!-- API klíč -->
+                <Border Classes="separator" Margin="0 16 0 16"/>
+
+                <StackPanel Spacing="5">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="API klíč"
+                                   FontSize="12" FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="Prázdné = bez ověření (dev)"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   Opacity="0.6"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                    <TextBox Text="{Binding ApiKey}"
+                             PasswordChar="•"
+                             PlaceholderText="Váš API klíč (nastavte na serveru přes ASSETMAP_API_KEY)"
+                             FontFamily="Consolas,monospace"/>
+                </StackPanel>
 
             </StackPanel>
         </Border>

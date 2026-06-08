@@ -178,7 +178,15 @@ public static class AccountRepo
                 var req = JsonSerializer.Deserialize<CreateAccountPayload>(mutation.Payload, _json);
                 if (req is null) continue;
 
-                double usdRate = req.UsdPrice > 0 ? req.UsdPrice : UsdRateForSymbol(req.AssetSymbol);
+                // Use current client rate for known assets (same fix as MapToAccountData)
+                double usdRate = UsdRateForSymbol(req.AssetSymbol);
+                bool   sameCurrPend = string.Equals(NormalizeSym(req.AssetSymbol),
+                                         NormalizeSym(DisplayCurrency),
+                                         StringComparison.OrdinalIgnoreCase);
+                double pendConv = sameCurrPend ? req.StartBalance : req.StartBalance * usdRate * UsdToDisplay;
+                double pendUsd  = sameCurrPend && UsdToDisplay > 0
+                                      ? req.StartBalance / UsdToDisplay
+                                      : req.StartBalance * usdRate;
                 _cache.Insert(0, new AccountData
                 {
                     Account = new Account
@@ -195,8 +203,8 @@ public static class AccountRepo
                     BaseCurrency      = req.AssetSymbol,
                     CurrentBalance    = req.StartBalance,
                     ConvertedCurrency = DisplayCurrency,
-                    ConvertedBalance  = req.StartBalance * usdRate * UsdToDisplay,
-                    BalanceHistory    = Enumerable.Repeat(req.StartBalance * usdRate, 365).ToArray(),
+                    ConvertedBalance  = pendConv,
+                    BalanceHistory    = Enumerable.Repeat(pendUsd, 365).ToArray(),
                     RecentTransactions = [],
                     IsPending         = true,
                 });
@@ -237,6 +245,12 @@ public static class AccountRepo
         string payloadJson = JsonSerializer.Serialize(payload, _json);
 
         // 1. Optimistická lokální aktualizace (okamžitě viditelné v UI)
+        bool sameCurrOpt = string.Equals(NormalizeSym(assetSymbol), NormalizeSym(DisplayCurrency),
+                                         StringComparison.OrdinalIgnoreCase);
+        double optConvBalance = sameCurrOpt ? startBalance : startBalance * usdRate * UsdToDisplay;
+        double optUsd         = sameCurrOpt && UsdToDisplay > 0
+                                    ? startBalance / UsdToDisplay
+                                    : startBalance * usdRate;
         _cache.Insert(0, new AccountData
         {
             Account = new Account
@@ -249,8 +263,8 @@ public static class AccountRepo
             BaseCurrency      = assetSymbol,
             CurrentBalance    = startBalance,
             ConvertedCurrency = DisplayCurrency,
-            ConvertedBalance  = startBalance * usdRate * UsdToDisplay,
-            BalanceHistory    = Enumerable.Repeat(startBalance * usdRate, 365).ToArray(),
+            ConvertedBalance  = optConvBalance,
+            BalanceHistory    = Enumerable.Repeat(optUsd, 365).ToArray(),
             RecentTransactions = [],
             IsPending         = true,
         });
@@ -453,6 +467,44 @@ public static class AccountRepo
             };
         }).ToList();
 
+        // ── Recompute display value using CLIENT's live rates ──────
+        // Server's CurrentValueUsd may use a stale PriceSnapshot (from account creation)
+        // that differs from the client's current UsdToDisplay → causes e.g. 44k vs 50k CZK.
+        //
+        // Strategy:
+        //  • Same currency (CZK account, display = CZK): ConvertedBalance = CurrentBalance exactly.
+        //  • Known asset (fiat, major crypto): recompute from native × current client rate.
+        //  • Unknown asset: fall back to server's CurrentValueUsd (we have no local price).
+        string sym = dto.BaseCurrency;
+        bool sameCurrency = string.Equals(NormalizeSym(sym), NormalizeSym(DisplayCurrency),
+                                          StringComparison.OrdinalIgnoreCase);
+
+        double currentUsd;
+        double convertedBalance;
+
+        if (sameCurrency)
+        {
+            // Exact — no FX round-trip needed
+            convertedBalance = dto.CurrentBalance;
+            // Approximate USD for history scaling: native / UsdToDisplay
+            currentUsd = UsdToDisplay > 0 ? dto.CurrentBalance / UsdToDisplay : dto.CurrentValueUsd;
+        }
+        else
+        {
+            double usdRate     = UsdRateForSymbol(sym);
+            // usdRate == 1.0 and symbol ≠ USD means no local price → trust server
+            bool   useServer   = usdRate == 1.0 && !string.Equals(sym, "USD",
+                                     StringComparison.OrdinalIgnoreCase);
+            currentUsd     = useServer ? dto.CurrentValueUsd : dto.CurrentBalance * usdRate;
+            convertedBalance = currentUsd * UsdToDisplay;
+        }
+
+        // Scale history so its last point matches currentUsd (keeps chart shapes correct)
+        double histScale = dto.CurrentValueUsd > 0 ? currentUsd / dto.CurrentValueUsd : 1.0;
+        double[] history = dto.BalanceHistoryUsd.Length > 0
+            ? dto.BalanceHistoryUsd.Select(v => v * histScale).ToArray()
+            : dto.BalanceHistoryUsd;
+
         return new AccountData
         {
             Account           = account,
@@ -460,12 +512,16 @@ public static class AccountRepo
             BaseCurrency      = dto.BaseCurrency,
             CurrentBalance    = dto.CurrentBalance,
             ConvertedCurrency = DisplayCurrency,
-            ConvertedBalance  = dto.CurrentValueUsd * UsdToDisplay,
-            BalanceHistory    = dto.BalanceHistoryUsd,
+            ConvertedBalance  = convertedBalance,
+            BalanceHistory    = history,
             RecentTransactions = txs,
             IsPending         = isPending,
         };
     }
+
+    /// <summary>Normalizes asset symbol for currency comparison (Kč → CZK, uppercase).</summary>
+    private static string NormalizeSym(string s) =>
+        string.Equals(s, "Kč", StringComparison.OrdinalIgnoreCase) ? "CZK" : s.ToUpperInvariant();
 
     // ── DTO typy (zrcadlí AssetMap.Core.Models) ───────────
     private class AccountFullDto

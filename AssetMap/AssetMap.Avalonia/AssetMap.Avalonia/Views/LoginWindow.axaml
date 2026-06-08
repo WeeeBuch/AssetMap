@@ -57,20 +57,21 @@
                 <!-- Formulář -->
                 <StackPanel Spacing="12">
                     <StackPanel Spacing="5">
-                        <TextBlock Text="Uživatelské jméno"
-                                   FontSize="12" FontWeight="Medium"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBox Text="{Binding Username}"
-                                 PlaceholderText="Zadejte uživatelské jméno"/>
-                    </StackPanel>
-
-                    <StackPanel Spacing="5">
-                        <TextBlock Text="Heslo"
-                                   FontSize="12" FontWeight="Medium"
-                                   Foreground="{DynamicResource BrushTextSecondary}"/>
-                        <TextBox Text="{Binding Password}"
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="API klíč"
+                                       FontSize="12" FontWeight="Medium"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="Prázdné = server bez ověření"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       Opacity="0.6"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBox Text="{Binding ApiKey}"
                                  PasswordChar="•"
-                                 PlaceholderText="Zadejte heslo"/>
+                                 PlaceholderText="Nechte prázdné pokud server nemá API klíč"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -88,7 +89,7 @@
                                FontSize="12"/>
                 </Border>
 
-                <!-- Tlačítko přihlásit -->
+                <!-- Tlačítko připojit -->
                 <Button Command="{Binding LoginCommand}"
                         Margin="0 20 0 0"
                         HorizontalAlignment="Stretch"
@@ -96,11 +97,22 @@
                         Padding="0 12"
                         FontSize="14" FontWeight="SemiBold">
                     <Panel>
-                        <TextBlock Text="Přihlásit se"
+                        <TextBlock Text="Připojit k serveru"
                                    IsVisible="{Binding !IsBusy}"/>
-                        <TextBlock Text="Přihlašování…"
+                        <TextBlock Text="Připojuji…"
                                    IsVisible="{Binding IsBusy}"/>
                     </Panel>
+                </Button>
+
+                <!-- Offline tlačítko -->
+                <Button Command="{Binding ContinueOfflineCommand}"
+                        Margin="0 8 0 0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Classes="secondary"
+                        Padding="0 10"
+                        FontSize="13">
+                    <TextBlock Text="Pokračovat offline"/>
                 </Button>
 
                 <!-- Server URL řádek -->
@@ -142,7 +154,7 @@
                             <TextBox Grid.Column="0"
                                      Text="{Binding ServerUrl}"
                                      FontSize="12" FontFamily="Consolas,monospace"
-                                     PlaceholderText="http://localhost:5000"
+                                     PlaceholderText="http://localhost:5033"
                                      Padding="8 5"/>
                             <Button Grid.Column="1"
                                     Classes="ghost"

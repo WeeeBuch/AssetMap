@@ -148,6 +148,9 @@ public partial class MainViewModel : ViewModelBase
         PriceRefreshService.Start();
         SyncService.Start();
 
+        // Počáteční ping — nastaví IsOnline správně ještě před 15s timerem
+        _ = SyncService.PingAsync();
+
         // ── FX kurzy ─────────────────────────────────────────
         FxRates.Updated += () => Dispatcher.UIThread.Post(() =>
             ApplyCurrency(SettingsService.Current.DisplayCurrency));
