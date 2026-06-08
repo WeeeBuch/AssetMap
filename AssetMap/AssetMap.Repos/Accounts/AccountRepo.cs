@@ -187,7 +187,7 @@ public static class AccountRepo
                 double pendUsd  = sameCurrPend && UsdToDisplay > 0
                                       ? req.StartBalance / UsdToDisplay
                                       : req.StartBalance * usdRate;
-                _cache.Insert(0, new AccountData
+                _cache.Add(new AccountData
                 {
                     Account = new Account
                     {
@@ -251,7 +251,7 @@ public static class AccountRepo
         double optUsd         = sameCurrOpt && UsdToDisplay > 0
                                     ? startBalance / UsdToDisplay
                                     : startBalance * usdRate;
-        _cache.Insert(0, new AccountData
+        _cache.Add(new AccountData
         {
             Account = new Account
             {

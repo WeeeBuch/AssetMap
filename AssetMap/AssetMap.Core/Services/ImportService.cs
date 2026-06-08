@@ -28,6 +28,7 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         byte[] rawBytes = ms.ToArray();
 
         // Dekóduj: zkus UTF-8, fallback na Windows-1250 (české banky)
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         string rawUtf8 = System.Text.Encoding.UTF8.GetString(rawBytes);
         string raw = rawUtf8.Contains('�')
             ? System.Text.Encoding.GetEncoding(1250).GetString(rawBytes)
