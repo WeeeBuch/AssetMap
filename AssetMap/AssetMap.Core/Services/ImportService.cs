@@ -107,6 +107,11 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
         var txsToAdd     = new List<Transaction>();
         decimal holdingDelta = 0m;
 
+        // KB two-pass: sbírej EUR nákupy pro lepší popis Vyrovnávací úhrady
+        Dictionary<string, string>? kbEurMerchants = format == "kb"
+            ? CollectKbEurMerchants(lines, dataStart)
+            : null;
+
         for (int i = dataStart; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
@@ -120,7 +125,7 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
                 {
                     "revolut"    => ParseRevolutRow(line),
                     "trading212" => ParseTrading212Row(line),
-                    "kb"         => ParseKbRow(line, account.BaseCurrency),
+                    "kb"         => ParseKbRow(line, account.BaseCurrency, kbEurMerchants),
                     _            => ParseGenericRow(line),
                 };
 
@@ -335,10 +340,59 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
     // ── KB (Komerční banka) ─────────────────────────────────────────
     // Sloupce (;-separated): DatumZauctovani;DatumProvedeni;Protistrana;NazevProtiuctu;
-    //                         Castka;Mena;OrigCastka;OrigMena;Kurz;VS;KS;SS;
+    //                         Castka;Mena;OrigCastka;OrigMena;SmennyKurz;VS;KS;SS;
     //                         IdentTransakce;TypTransakce;PopisProMne;ZpravaProPrijemce;...
     // Záporná Castka = výběr, kladná = příjem. Desetinný oddělovač = čárka.
-    private static ParsedRow? ParseKbRow(string line, string? accountCurrency = null)
+    //
+    // Multiměnový účet: STEAM v EUR generuje 3 řádky:
+    //   1. -3,1 EUR  (Nákup na internetu, STEAM PURCHASE)  → SKIP (cizí měna)
+    //   2. +3,1 EUR  (Vyrovnávací úhrada)                  → SKIP
+    //   3. -78,04 CZK (Vyrovnávací úhrada, kurz 25,1731)   → IMPORT s note "STEAM PURCHASE (€3,10 → CZK 78,04 @ 25,17)"
+    //
+    // Pass 1: CollectKbEurMerchants sbírá EUR nákupy před importem
+    // Pass 2: ParseKbRow dostane slovník k dohledání obchodníka pro CZK settlement řádek
+
+    /// <summary>
+    /// Sbírej EUR nákupy (ne Vyrovnávací úhrada) pro zpětné doplnění popisu v CZK settlement řádku.
+    /// Klíč = absolutní EUR částka zaokrouhlená na 2 desetinná místa ("3.10").
+    /// </summary>
+    private static Dictionary<string, string> CollectKbEurMerchants(string[] lines, int dataStart)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int i = dataStart; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            var cols = SplitCsv(line, ';');
+            if (cols.Length < 6) continue;
+
+            string currency = cols[5].Trim();
+            if (!currency.Equals("EUR", StringComparison.OrdinalIgnoreCase)) continue;
+
+            string txType = cols.Length > 13 ? cols[13].Trim() : "";
+            if (txType.StartsWith("Vyrovn", StringComparison.OrdinalIgnoreCase)) continue;
+
+            string amtStr = cols[4].Trim();
+            if (string.IsNullOrWhiteSpace(amtStr)) continue;
+
+            decimal amt;
+            try { amt = ParseDecimal(amtStr); } catch { continue; }
+            if (amt >= 0) continue;   // jen debety (nákupy)
+
+            string merchant = cols.Length > 3 ? cols[3].Trim() : "";
+            if (string.IsNullOrWhiteSpace(merchant)) continue;
+
+            // Klíč = absolutní částka na 2 des. místa ("3.10"), shoda s hodnotou vypočtenou z kurzu
+            string key = Math.Abs(Math.Round(amt, 2)).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            if (!result.ContainsKey(key))
+                result[key] = merchant;
+        }
+        return result;
+    }
+
+    private static ParsedRow? ParseKbRow(string line, string? accountCurrency = null,
+        Dictionary<string, string>? eurMerchants = null)
     {
         var cols = SplitCsv(line, ';');
         if (cols.Length < 5) return null;
@@ -361,18 +415,51 @@ public class ImportService(AppDbContext db, IPortfolioService portfolio) : IImpo
 
         var type = amount >= 0 ? TransactionType.Deposit : TransactionType.Withdrawal;
 
-        // Note: typ transakce — protistrana — zpráva příjemci
         string name    = cols.Length > 3  ? cols[3].Trim()  : "";
         string txType  = cols.Length > 13 ? cols[13].Trim() : "";
         string message = cols.Length > 15 ? cols[15].Trim() : "";
+        string rateStr = cols.Length > 8  ? cols[8].Trim()  : "";
 
-        var noteParts = new System.Collections.Generic.List<string>();
-        if (!string.IsNullOrWhiteSpace(txType))  noteParts.Add(txType);
-        if (!string.IsNullOrWhiteSpace(name))    noteParts.Add(name);
-        if (!string.IsNullOrWhiteSpace(message)) noteParts.Add(message);
-        string? note = noteParts.Count > 0 ? string.Join(" — ", noteParts) : null;
+        string? note = BuildKbNote(txType, name, message, rateStr, rowCurrency, amount, eurMerchants);
 
         return new ParsedRow(date, type, Math.Abs(amount), note);
+    }
+
+    /// <summary>
+    /// Sestaví textový popis KB transakce.
+    /// Pro "Vyrovnávací úhrada" (CZK settlement za EUR nákup) doplní EUR částku a kurz.
+    /// Pokud je k dispozici slovník eurMerchants, doplní i název obchodníka.
+    /// </summary>
+    private static string? BuildKbNote(
+        string txType, string name, string message,
+        string rateStr, string currency, decimal amount,
+        Dictionary<string, string>? eurMerchants)
+    {
+        // Vyrovnávací úhrada = KB forex settlement
+        if (txType.StartsWith("Vyrovn", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(rateStr))
+        {
+            try
+            {
+                decimal rate   = ParseDecimal(rateStr);
+                decimal eurAmt = rate > 0 ? Math.Round(Math.Abs(amount) / rate, 2) : 0m;
+                if (eurAmt > 0)
+                {
+                    string eurKey = eurAmt.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                    if (eurMerchants != null && eurMerchants.TryGetValue(eurKey, out string? merchant))
+                        return $"{merchant} (€{eurAmt:F2} → {currency} {Math.Abs(amount):F2} @ {rate:F2})";
+                    return $"Směna EUR→{currency}: €{eurAmt:F2} @ {rate:F2}";
+                }
+            }
+            catch { /* fallback na standardní note */ }
+        }
+
+        // Standardní note: TypTransakce — NázevProtistran — ZprávaProPříjemce
+        var parts = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrWhiteSpace(txType))  parts.Add(txType);
+        if (!string.IsNullOrWhiteSpace(name))    parts.Add(name);
+        if (!string.IsNullOrWhiteSpace(message)) parts.Add(message);
+        return parts.Count > 0 ? string.Join(" — ", parts) : null;
     }
 
     // ── Trading212 ───────────────────────────────────────────────────
