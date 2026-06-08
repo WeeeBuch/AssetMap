@@ -92,16 +92,17 @@ public partial class MainViewModel : ViewModelBase
     public bool IsCurrencyGbp => DisplayCurrency == "GBP";
     public bool IsCurrencyChf => DisplayCurrency == "CHF";
 
-    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR", 1.00);
-    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK", 25.20);
-    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD", 1.08);
-    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP", 0.86);
-    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF", 0.95);
+    // Kurzy USD → cílová měna  (1 USD = X)
+    [RelayCommand] private void SetCurrencyUsd() => ApplyCurrency("USD", 1.0);
+    [RelayCommand] private void SetCurrencyEur() => ApplyCurrency("EUR", 0.9259);
+    [RelayCommand] private void SetCurrencyCzk() => ApplyCurrency("CZK", 23.33);
+    [RelayCommand] private void SetCurrencyGbp() => ApplyCurrency("GBP", 0.7963);
+    [RelayCommand] private void SetCurrencyChf() => ApplyCurrency("CHF", 0.8796);
 
-    private void ApplyCurrency(string code, double eurToDisplay)
+    private void ApplyCurrency(string code, double usdToDisplay)
     {
         DisplayCurrency = code;
-        AccountRepo.SetDisplayCurrency(code, eurToDisplay);
+        AccountRepo.SetDisplayCurrency(code, usdToDisplay);
         SettingsService.Current.DisplayCurrency = code;
         SettingsService.Save();
         _ = AccountRepo.RefreshAsync();
@@ -167,13 +168,15 @@ public partial class MainViewModel : ViewModelBase
         ((long)System.Math.Round(v))
             .ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
+    // USD → cílová měna  (1 USD = X)
     internal static double CurrencyRateFor(string code) => code switch
     {
-        "CZK" => 25.20,
-        "USD" => 1.08,
-        "GBP" => 0.86,
-        "CHF" => 0.95,
-        _     => 1.0,  // EUR default
+        "USD" => 1.0,
+        "EUR" => 0.9259,
+        "CZK" => 23.33,
+        "GBP" => 0.7963,
+        "CHF" => 0.8796,
+        _     => 1.0,
     };
 
     // ── Sidebar toggle ────────────────────────────────────────

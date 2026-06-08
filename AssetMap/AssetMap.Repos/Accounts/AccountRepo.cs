@@ -9,7 +9,7 @@ namespace AssetMap.Repos.Accounts;
 
 /// <summary>
 /// Repozitář účtů s in-memory cache.
-/// Volat RefreshAsync() pro načtení ze serveru (zatím mock data).
+/// Interní základní měna je USD — crypto API (CoinGecko, Bitstamp…) vrací USD ceny.
 /// </summary>
 public static class AccountRepo
 {
@@ -20,6 +20,20 @@ public static class AccountRepo
 
     /// <summary>Vyvolá se po každém úspěšném RefreshAsync (na thread poolu).</summary>
     public static event Action? DataRefreshed;
+
+    // ── Zobrazovací měna ──────────────────────────────────────
+    /// <summary>Kód cílové měny pro zobrazení (např. "USD", "EUR", "CZK").</summary>
+    public static string DisplayCurrency { get; private set; } = "USD";
+
+    /// <summary>Kurz USD → DisplayCurrency (1 USD = X DisplayCurrency).</summary>
+    public static double UsdToDisplay { get; private set; } = 1.0;
+
+    /// <summary>Nastaví zobrazovací měnu. Po volání zavolat RefreshAsync().</summary>
+    public static void SetDisplayCurrency(string code, double usdToDisplay)
+    {
+        DisplayCurrency = code;
+        UsdToDisplay    = usdToDisplay;
+    }
 
     // ── API volání ────────────────────────────────────────────
     /// <summary>
@@ -45,7 +59,6 @@ public static class AccountRepo
 
 #if DEBUG
     // ── Mock data ─────────────────────────────────────────────
-    // Statické assety (v produkci přijdou ze serveru)
     private static readonly Guid _userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     private static readonly Asset AsstCzk = new()
@@ -66,23 +79,27 @@ public static class AccountRepo
 
     private static List<AccountData> GenerateMock() =>
     [
-        Build("Běžný účet",    "Česká spořitelna", AccountType.Bank,         AsstCzk,
-              startBalance: 42_500,  convertedCurrency: "EUR", conversionRate: 0.040, seed: 1),
+        // conversionRate = native → USD
+        // CZK: 1 CZK = 0.0432 USD  (25.20 CZK/EUR × 1/1.08 USD/EUR ≈ 0.0432)
+        Build("Běžný účet",   "Česká spořitelna", AccountType.Bank,         AsstCzk,
+              startBalance: 42_500,  conversionRateToUsd: 0.0432, seed: 1),
 
-        Build("Spořicí účet",  "Raiffeisenbank",   AccountType.Bank,         AsstCzk,
-              startBalance: 185_000, convertedCurrency: "EUR", conversionRate: 0.040, seed: 2),
+        Build("Spořicí účet", "Raiffeisenbank",   AccountType.Bank,         AsstCzk,
+              startBalance: 185_000, conversionRateToUsd: 0.0432, seed: 2),
 
-        Build("Revolut",       "Revolut",           AccountType.Bank,         AsstEur,
-              startBalance: 2_400,   convertedCurrency: "EUR", conversionRate: 1.0, seed: 3),
+        // EUR: 1 EUR = 1.08 USD
+        Build("Revolut",      "Revolut",           AccountType.Bank,         AsstEur,
+              startBalance: 2_400,   conversionRateToUsd: 1.08,   seed: 3),
 
-        Build("Bitstamp",      "Bitcoin",           AccountType.CryptoWallet, AsstBtc,
-              startBalance: 0.85,    convertedCurrency: "EUR", conversionRate: 75_500, seed: 4),
+        // BTC cena v USD (CoinGecko/Bitstamp vrací USD)
+        Build("Bitstamp",     "Bitcoin",           AccountType.CryptoWallet, AsstBtc,
+              startBalance: 0.85,    conversionRateToUsd: 83_000, seed: 4),
     ];
 
     private static AccountData Build(
         string name, string institution, AccountType type,
         Asset asset, double startBalance,
-        string? convertedCurrency, double conversionRate,
+        double conversionRateToUsd,
         int seed)
     {
         var rng       = new Random(seed);
@@ -96,8 +113,8 @@ public static class AccountRepo
         for (int i = 0; i < 365; i++)
         {
             double delta = (rng.NextDouble() - 0.44) * startBalance * 0.025;
-            balance      = Math.Max(balance + delta, startBalance * 0.1);
-            history[i]   = balance;
+            balance    = Math.Max(balance + delta, startBalance * 0.1);
+            history[i] = balance;
 
             // ~15 % šance na transakci
             if (rng.NextDouble() < 0.15)
@@ -114,7 +131,7 @@ public static class AccountRepo
                     AssetId      = asset.Id,
                     Asset        = asset,
                     Quantity     = (decimal)amount,
-                    PricePerUnit = 1m,   // fiat 1:1; pro BTC by server doplnil cenu
+                    PricePerUnit = 1m,
                 });
             }
         }
@@ -134,13 +151,13 @@ public static class AccountRepo
             },
             BaseCurrency      = asset.Symbol,
             CurrentBalance    = final,
-            ConvertedCurrency = convertedCurrency,
-            ConvertedBalance  = final * conversionRate,
+            // ConvertedBalance = hodnota v DisplayCurrency
+            ConvertedCurrency = DisplayCurrency,
+            ConvertedBalance  = final * conversionRateToUsd * UsdToDisplay,
             BalanceHistory    = history,
             RecentTransactions = [.. transactions.OrderByDescending(t => t.Date).Take(25)],
         };
     }
 
 #endif
-
 }

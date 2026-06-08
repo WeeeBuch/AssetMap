@@ -114,6 +114,31 @@
                 <!-- Výběr měny — karty s výběrovým kroužkem -->
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="0 0 0 12">
 
+                    <!-- USD -->
+                    <Panel Width="84" Height="76">
+                        <Border Width="84" Height="76" CornerRadius="12"
+                                BorderBrush="{DynamicResource BrushAccent}"
+                                BorderThickness="2"
+                                IsVisible="{Binding IsCurrencyUsd}"/>
+                        <Button Classes="ghost" Padding="0" CornerRadius="10"
+                                Command="{Binding SetCurrencyUsdCommand}"
+                                Width="76" Height="68"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="68" CornerRadius="10"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="$" FontSize="26" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextPrimary}"/>
+                                    <TextBlock Text="USD" FontSize="11" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource BrushTextSecondary}"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </Panel>
+
                     <!-- EUR -->
                     <Panel Width="84" Height="76">
                         <Border Width="84" Height="76" CornerRadius="12"
@@ -157,31 +182,6 @@
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource BrushTextPrimary}"/>
                                     <TextBlock Text="CZK" FontSize="11" FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource BrushTextSecondary}"/>
-                                </StackPanel>
-                            </Border>
-                        </Button>
-                    </Panel>
-
-                    <!-- USD -->
-                    <Panel Width="84" Height="76">
-                        <Border Width="84" Height="76" CornerRadius="12"
-                                BorderBrush="{DynamicResource BrushAccent}"
-                                BorderThickness="2"
-                                IsVisible="{Binding IsCurrencyUsd}"/>
-                        <Button Classes="ghost" Padding="0" CornerRadius="10"
-                                Command="{Binding SetCurrencyUsdCommand}"
-                                Width="76" Height="68"
-                                HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="76" Height="68" CornerRadius="10"
-                                    Background="{DynamicResource BrushSurfaceAlt}"
-                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
-                                    <TextBlock Text="$" FontSize="26" FontWeight="Bold"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource BrushTextPrimary}"/>
-                                    <TextBlock Text="USD" FontSize="11" FontWeight="SemiBold"
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource BrushTextSecondary}"/>
                                 </StackPanel>
