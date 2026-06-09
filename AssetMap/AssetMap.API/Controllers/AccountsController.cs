@@ -200,6 +200,39 @@ public class AccountsController(IAccountService accounts, IImportService importe
         return Ok(txsToSave.Select(t => t.Id).ToArray());
     }
 
+    /// <summary>
+    /// Smaže duplicitní importované transakce (stejné Note/txid, ponechá nejstarší).
+    /// Volej před nebo po sync pokud vznikly duplikáty.
+    /// DELETE /api/accounts/{id}/dedup-transactions
+    /// </summary>
+    [HttpDelete("{id:guid}/dedup-transactions")]
+    public async Task<IActionResult> DedupTransactions(Guid id, CancellationToken ct)
+    {
+        // Najdi všechny txids co mají více než 1 záznam pro tento účet
+        var duplicateNotes = await db.Transactions
+            .Where(t => t.AccountId == id && t.Note != null)
+            .GroupBy(t => t.Note)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToListAsync(ct);
+
+        int removed = 0;
+        foreach (var note in duplicateNotes)
+        {
+            // Ponechej nejstarší (nejmenší Date), smaž ostatní
+            var dupes = await db.Transactions
+                .Where(t => t.AccountId == id && t.Note == note)
+                .OrderBy(t => t.Date)
+                .ToListAsync(ct);
+
+            db.Transactions.RemoveRange(dupes.Skip(1)); // Skip(1) = ponechá první
+            removed += dupes.Count - 1;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Ok(new { removedDuplicates = removed, affectedTxIds = duplicateNotes.Count });
+    }
+
     /// <summary>Spustí manuální sync krypto peněženky (znovu načte transakce z blockchainu).</summary>
     [HttpPost("{id:guid}/sync-wallet")]
     public async Task<IActionResult> SyncWallet(Guid id, CancellationToken ct)
