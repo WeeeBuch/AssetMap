@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using AssetMap.Entities.Enums;
 using AssetMap.Repos.Accounts;
@@ -21,6 +22,7 @@ public record TransactionDisplayItem(
 )
 {
     public Guid     TransactionId { get; init; }
+    public double   Quantity      { get; init; }   // surová hodnota pro qty rekonstrukci
     public string?  Note          { get; init; }
     public Guid?    FromAccountId { get; init; }
     public Guid?    ToAccountId   { get; init; }
@@ -135,14 +137,20 @@ public partial class AccountCardViewModel : ViewModelBase
                 if (!string.IsNullOrWhiteSpace(tx.Note))
                     desc = tx.Note;
 
+                bool isCryptoLike = acc.AccountType is AccountType.CryptoWallet or AccountType.Brokerage;
+                string qtyStr = isCryptoLike
+                    ? SmartFormatQty((double)tx.Quantity)
+                    : FormatFiat((double)tx.Quantity);
+
                 return new TransactionDisplayItem(
                     icon, brush, desc,
                     tx.Date.ToString("dd. MM. yyyy"),
-                    (isCredit ? "+" : "−") + ((double)tx.Quantity).ToString("N2") + " " + data.BaseCurrency,
+                    (isCredit ? "+" : "−") + qtyStr + " " + data.BaseCurrency,
                     isCredit
                 )
                 {
                     TransactionId = tx.Id,
+                    Quantity      = (double)tx.Quantity,
                     Note          = tx.Note,
                     FromAccountId = tx.FromAccountId,
                     ToAccountId   = tx.ToAccountId,
@@ -171,10 +179,12 @@ public partial class AccountCardViewModel : ViewModelBase
             Institution       = acc.Institution ?? "",
             IconLetter        = acc.Name.Length > 0 ? acc.Name[0].ToString().ToUpper() : "?",
             IconBrush         = iconBrush,
-            BaseAmount        = data.CurrentBalance.ToString("N2"),   // native (CZK/BTC/...)
+            BaseAmount        = acc.AccountType is AccountType.CryptoWallet or AccountType.Brokerage
+                                    ? SmartFormatQty(data.CurrentBalance)
+                                    : FormatFiat(data.CurrentBalance),
             BaseCurrency      = data.BaseCurrency,
             ConvertedAmount   = data.ConvertedBalance.HasValue
-                                    ? data.ConvertedBalance.Value.ToString("N2") : null,
+                                    ? FormatFiat(data.ConvertedBalance.Value) : null,
             ConvertedCurrency = data.ConvertedCurrency,
             ChangeText        = (pct >= 0 ? "▲ +" : "▼ ") + Math.Abs(pct).ToString("N1") + " %",
             ChangePositive    = pct >= 0,
@@ -185,6 +195,34 @@ public partial class AccountCardViewModel : ViewModelBase
             WithdrawalIndices = [.. withdrawals],
             Transactions      = new ObservableCollection<TransactionDisplayItem>(txItems),
         };
+    }
+
+    // ── Formátování množství aktiva ───────────────────────────
+
+    /// <summary>
+    /// Chytré formátování pro krypto/brokerage: zachová malá desetinná čísla.
+    /// Pro fiat účty použij <see cref="FormatFiat"/>.
+    /// </summary>
+    internal static string SmartFormatQty(double v)
+    {
+        double abs = Math.Abs(v);
+        if (abs == 0) return "0";
+        if (abs >= 10_000) return v.ToString("N2", CultureInfo.CurrentCulture);
+        if (abs >= 1)      return TrimTrailingZeros(v.ToString("N6", CultureInfo.CurrentCulture));
+        // Malé hodnoty (sub-unit krypto): dostatek platných číslic
+        return v.ToString("G8", CultureInfo.CurrentCulture);
+    }
+
+    internal static string FormatFiat(double v) =>
+        v.ToString("N2", CultureInfo.CurrentCulture);
+
+    private static string TrimTrailingZeros(string s)
+    {
+        char sep = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
+        if (!s.Contains(sep)) return s;
+        s = s.TrimEnd('0');
+        if (s.Length > 0 && s[^1] == sep) s = s[..^1];
+        return s;
     }
 
     /// <summary>Deterministická barva ikony podle typu/jména.</summary>

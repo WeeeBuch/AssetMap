@@ -342,9 +342,13 @@ public partial class SimpleLineChart : UserControl
 
     private static string FormatValue(double v)
     {
-        if (Math.Abs(v) >= 1_000_000) return (v / 1_000_000).ToString("0.#") + "M";
-        if (Math.Abs(v) >= 10_000)    return (v / 1_000).ToString("0.#") + "k";
-        if (Math.Abs(v) >= 1_000)     return v.ToString("N0");
-        return v.ToString("0.##");
+        double abs = Math.Abs(v);
+        if (abs >= 1_000_000) return (v / 1_000_000).ToString("0.#") + "M";
+        if (abs >= 10_000)    return (v / 1_000).ToString("0.#") + "k";
+        if (abs >= 1_000)     return v.ToString("N0");
+        if (abs >= 1)         return v.ToString("N2");
+        if (abs >= 0.001)     return v.ToString("0.####", CultureInfo.InvariantCulture);
+        if (abs > 0)          return v.ToString("G4",    CultureInfo.InvariantCulture);
+        return "0";
     }
 }

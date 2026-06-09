@@ -26,6 +26,7 @@ public partial class AccountsViewModel : ViewModelBase
     // ── Vybraný účet ─────────────────────────────────────────
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedAccount))]
+    [NotifyPropertyChangedFor(nameof(ShowDetailModeToggle))]
     private AccountCardViewModel? _selectedAccount;
 
     public bool HasSelectedAccount => SelectedAccount is not null;
@@ -435,6 +436,37 @@ public partial class AccountsViewModel : ViewModelBase
     [RelayCommand] private void SetDetailPeriodAll() => DetailChartPeriod = ChartPeriod.All;
 
     partial void OnDetailChartPeriodChanged(ChartPeriod value) => ApplyDetailPeriod();
+
+    // ── Hodnota vs Jednotky toggle (jen krypto/brokerage) ────
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDetailModeValue))]
+    [NotifyPropertyChangedFor(nameof(IsDetailModeUnits))]
+    private DetailChartMode _detailChartMode = DetailChartMode.Value;
+
+    public bool IsDetailModeValue  => DetailChartMode == DetailChartMode.Value;
+    public bool IsDetailModeUnits  => DetailChartMode == DetailChartMode.Units;
+
+    /// <summary>Toggle viditelný jen pro krypto a brokerage účty.</summary>
+    public bool ShowDetailModeToggle =>
+        SelectedAccount?.AccountTypeValue is AccountType.CryptoWallet or AccountType.Brokerage;
+
+    [RelayCommand] private void SetDetailModeValue() => DetailChartMode = DetailChartMode.Value;
+
+    [RelayCommand]
+    private void SetDetailModeUnits()
+    {
+        DetailChartMode = DetailChartMode.Units;
+        // Spusť fetch pokud cena ještě není v cache
+        if (SelectedAccount is { AccountTypeValue: AccountType.CryptoWallet or AccountType.Brokerage }
+            && !_priceCache.ContainsKey(SelectedAccount.BaseCurrency))
+        {
+            _priceFetchCts?.Cancel();
+            _priceFetchCts = new CancellationTokenSource();
+            _ = FetchCryptoPriceAsync(SelectedAccount.BaseCurrency, _priceFetchCts.Token);
+        }
+    }
+
+    partial void OnDetailChartModeChanged(DetailChartMode value) => ApplyDetailPeriod();
     // Filtrovaná data pro detail chart
     private double[] _detailHistory         = [];
     private int[]    _detailDepositIndices   = [];
@@ -478,11 +510,11 @@ public partial class AccountsViewModel : ViewModelBase
         var acc = SelectedAccount;
         if (acc is null || acc.BalanceHistory.Length == 0)
         {
-            DetailHistory            = [];
-            DetailDepositIndices     = [];
-            DetailWithdrawalIndices  = [];
-            DetailPriceHistory       = [];
-            DetailPriceLabel         = "";
+            DetailHistory           = [];
+            DetailDepositIndices    = [];
+            DetailWithdrawalIndices = [];
+            DetailPriceHistory      = [];
+            DetailPriceLabel        = "";
             return;
         }
 
@@ -497,46 +529,71 @@ public partial class AccountsViewModel : ViewModelBase
         };
         if (take < 2) take = Math.Min(2, n);
 
-        int offset = n - take;
-        double[] raw = acc.BalanceHistory[offset..];
+        int      offset = n - take;
+        double[] raw    = acc.BalanceHistory[offset..]; // USD hodnoty
 
-        // BalanceHistory je v USD — přepočítej na nativní měnu
-        // Faktor = nativní zůstatek / poslední USD bod v celé historii
-        double usdLast  = acc.BalanceHistory[^1];
-        double nativeScale = usdLast > 1e-9 ? acc.RawBalance / usdLast : 1.0;
-        DetailHistory = raw.Select(v => v * nativeScale).ToArray();
+        bool isCryptoOrBroker = acc.AccountTypeValue is AccountType.CryptoWallet or AccountType.Brokerage;
 
-        DetailDepositIndices     = SliceIndices(acc.DepositIndices,    offset, take);
-        DetailWithdrawalIndices  = SliceIndices(acc.WithdrawalIndices, offset, take);
-
-        // Druhá čára — cena aktiva (jen krypto a brokerage)
-        if (acc.AccountTypeValue is AccountType.CryptoWallet or AccountType.Brokerage
-            && _priceCache.TryGetValue(acc.BaseCurrency, out double[]? prices) && prices.Length >= 2)
+        if (isCryptoOrBroker)
         {
-            int pOffset = Math.Max(0, prices.Length - n) + offset;
-            int pTake   = Math.Min(take, prices.Length - pOffset);
-            if (pTake >= 2)
+            // Rekonstrukce historického počtu jednotek z transakcí
+            // Výsledek: qtyFull[i] = kolik jednotek bylo na účtu v i-tém dnu celé n-bodové historie
+            double[] qtyFull   = BuildQtyHistory(acc, n);
+            double[] qtyWindow = qtyFull[offset..]; // délka = take
+
+            if (DetailChartMode == DetailChartMode.Value)
             {
-                DetailPriceHistory = prices[pOffset..(pOffset + pTake)];
-                DetailPriceLabel   = acc.BaseCurrency + " cena";
+                // Hodnota: qty_at_i × btcPrice_at_i × CZK/USD
+                // Zohledňuje jak vývoj ceny, tak i nákupy/prodeje
+                if (_priceCache.TryGetValue(acc.BaseCurrency, out double[]? prices) && prices.Length >= 2)
+                {
+                    int    pOffset = Math.Max(0, prices.Length - n) + offset;
+                    double czk     = AccountRepo.UsdToDisplay;
+                    double[] hodnota = new double[take];
+                    for (int i = 0; i < take; i++)
+                    {
+                        int    pi    = pOffset + i;
+                        double price = pi >= 0 && pi < prices.Length ? prices[pi] : prices[^1];
+                        hodnota[i]   = qtyWindow[i] * price * czk;
+                    }
+                    DetailHistory = hodnota;
+                }
+                else
+                {
+                    // Ceny ještě nejsou — flat fallback
+                    DetailHistory = raw.Select(v => v * AccountRepo.UsdToDisplay).ToArray();
+                }
             }
             else
             {
-                DetailPriceHistory = [];
-                DetailPriceLabel   = "";
+                // Jednotky: přímo rekonstruovaný počet aktiv (BTC/ETH/...)
+                DetailHistory = qtyWindow;
             }
         }
         else
         {
-            DetailPriceHistory = [];
-            DetailPriceLabel   = "";
+            // Fiat účty — zobrazovací měna (CZK)
+            DetailHistory = raw.Select(v => v * AccountRepo.UsdToDisplay).ToArray();
         }
+
+        DetailDepositIndices    = SliceIndices(acc.DepositIndices,    offset, take);
+        DetailWithdrawalIndices = SliceIndices(acc.WithdrawalIndices, offset, take);
+
+        // Druhá čára se nepoužívá — toggle nahradil dual-line přístup
+        DetailPriceHistory = [];
+        DetailPriceLabel   = "";
     }
 
     partial void OnSelectedAccountChanged(AccountCardViewModel? value)
     {
+        // Reset na Hodnota mode při přepnutí účtu (bez triggeru OnDetailChartModeChanged)
+        _detailChartMode = DetailChartMode.Value;
+        OnPropertyChanged(nameof(IsDetailModeValue));
+        OnPropertyChanged(nameof(IsDetailModeUnits));
+
         ApplyDetailPeriod();
-        // Zahájíme fetch cen pro krypto/brokerage pokud není v cache
+
+        // Fetch ceny pro krypto/brokerage (potřebné pro Jednotky mode)
         if (value is { AccountTypeValue: AccountType.CryptoWallet or AccountType.Brokerage }
             && !_priceCache.ContainsKey(value.BaseCurrency))
         {
@@ -589,6 +646,44 @@ public partial class AccountsViewModel : ViewModelBase
         }
         catch (OperationCanceledException) { }
         catch { /* tichá chyba — cena prostě nebude zobrazena */ }
+    }
+
+    /// <summary>
+    /// Rekonstruuje historii počtu jednotek z transakcí.
+    /// Vrací pole délky <paramref name="n"/> kde [0] = nejstarší den, [^1] = dnes.
+    /// </summary>
+    private static double[] BuildQtyHistory(AccountCardViewModel acc, int n)
+    {
+        // Seřadit transakce od nejstarší po nejnovější
+        var txsSorted = acc.Transactions
+            .OrderBy(t => t.RawDateTime)
+            .ToList();
+
+        // Součet změn v 25 viditelných transakcích
+        double netFromTx = 0;
+        foreach (var tx in txsSorted)
+            netFromTx += tx.IsCredit ? tx.Quantity : -tx.Quantity;
+
+        // Zůstatek PŘED viditelným oknem transakcí
+        double initialQty = Math.Max(0, acc.RawBalance - netFromTx);
+
+        var    baseDate = DateTime.Today.AddDays(-(n - 1));
+        double[] result = new double[n];
+        double curQty = initialQty;
+        int ti = 0;
+
+        for (int i = 0; i < n; i++)
+        {
+            var dayDate = baseDate.AddDays(i);
+            // Aplikuj všechny transakce s datem ≤ tento den
+            while (ti < txsSorted.Count && txsSorted[ti].RawDateTime.Date <= dayDate)
+            {
+                var tx = txsSorted[ti++];
+                curQty += tx.IsCredit ? tx.Quantity : -tx.Quantity;
+            }
+            result[i] = Math.Max(0, curQty);
+        }
+        return result;
     }
 
     private static int[] SliceIndices(int[] src, int offset, int take) =>

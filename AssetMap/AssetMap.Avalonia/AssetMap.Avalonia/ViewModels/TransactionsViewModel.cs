@@ -126,9 +126,12 @@ public partial class TransactionsViewModel : ViewModelBase
                     bool   isCredit   = tx.Type == TransactionType.Deposit;
                     double qty        = (double)tx.Quantity;
                     double converted  = qty * convRate;
-                    string amtStr     = (isCredit ? "+" : "−")
-                                        + qty.ToString("N2", CultureInfo.CurrentCulture)
-                                        + " " + d.BaseCurrency;
+                    bool   isCryptoLike2 = d.Account.AccountType is AccountType.CryptoWallet
+                                                                  or AccountType.Brokerage;
+                    string qtyFmt    = isCryptoLike2
+                                       ? AccountCardViewModel.SmartFormatQty(qty)
+                                       : AccountCardViewModel.FormatFiat(qty);
+                    string amtStr    = (isCredit ? "+" : "−") + qtyFmt + " " + d.BaseCurrency;
 
                     IBrush iconBrush;
                     string iconText;

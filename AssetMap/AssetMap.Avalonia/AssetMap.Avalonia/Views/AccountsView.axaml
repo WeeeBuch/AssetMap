@@ -410,15 +410,31 @@
             <Border Classes="card" Padding="4 8 4 4">
                 <StackPanel Spacing="6">
 
-                    <!-- Hlavička + period toggle -->
-                    <Grid ColumnDefinitions="*,Auto" Margin="8 2 4 0">
+                    <!-- Hlavička: přepínač Hodnota/Jednotky + period toggle -->
+                    <Grid ColumnDefinitions="*,Auto,8,Auto" Margin="8 2 4 0">
                         <TextBlock Grid.Column="0"
                                    Text="Vývoj zůstatku"
                                    FontSize="13" FontWeight="SemiBold"
                                    Foreground="{DynamicResource BrushTextPrimary}"
                                    VerticalAlignment="Center"/>
 
+                        <!-- Hodnota / Jednotky — jen pro krypto/brokerage -->
                         <Border Grid.Column="1"
+                                IsVisible="{Binding ShowDetailModeToggle}"
+                                CornerRadius="7"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" Padding="2">
+                            <StackPanel Orientation="Horizontal" Spacing="0">
+                                <Button Classes="seg" Classes.on="{Binding IsDetailModeValue}"
+                                        Command="{Binding SetDetailModeValueCommand}" Content="Hodnota"/>
+                                <Button Classes="seg" Classes.on="{Binding IsDetailModeUnits}"
+                                        Command="{Binding SetDetailModeUnitsCommand}" Content="Jednotky"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Period toggle -->
+                        <Border Grid.Column="3"
                                 CornerRadius="7"
                                 Background="{DynamicResource BrushSurfaceAlt}"
                                 BorderBrush="{DynamicResource BrushBorder}"
@@ -441,9 +457,7 @@
                     <comp:SimpleLineChart Height="220"
                                           BalanceHistory="{Binding DetailHistory}"
                                           DepositIndices="{Binding DetailDepositIndices}"
-                                          WithdrawalIndices="{Binding DetailWithdrawalIndices}"
-                                          PriceLine="{Binding DetailPriceHistory}"
-                                          PriceLabel="{Binding DetailPriceLabel}"/>
+                                          WithdrawalIndices="{Binding DetailWithdrawalIndices}"/>
                 </StackPanel>
             </Border>
 
