@@ -29,4 +29,9 @@ public record AccountData
 
     /// <summary>True = lokálně vytvořeno offline, ještě nebylo synchonizováno se serverem.</summary>
     public bool IsPending { get; init; }
+
+    /// <summary>Adresa krypto peněženky (pokud byla zadána při vytvoření účtu).</summary>
+    public string? WalletAddress    { get; init; }
+    /// <summary>"Pending" | "Ok" | "Error" | null</summary>
+    public string? WalletSyncStatus { get; init; }
 }

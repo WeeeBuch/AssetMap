@@ -326,6 +326,11 @@
                                FontSize="12" FontWeight="Medium"
                                HorizontalAlignment="Right"
                                Foreground="{DynamicResource BrushTextSecondary}"/>
+                    <!-- Aktuální kurz (jen krypto/brokerage) -->
+                    <TextBlock Text="{Binding SelectedAccount.UnitPriceText}"
+                               FontSize="11" HorizontalAlignment="Right"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               IsVisible="{Binding SelectedAccount.HasUnitPrice}"/>
                 </StackPanel>
 
                 <!-- + Přidat transakci -->
@@ -389,6 +394,51 @@
                                VerticalAlignment="Center"/>
                 </Button>
             </Grid>
+
+            <!-- Wallet status (krypto peněženka) -->
+            <Border CornerRadius="8" Padding="12 8"
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                    IsVisible="{Binding SelectedAccount.HasWalletAddress}">
+                <Grid ColumnDefinitions="Auto,12,*,12,Auto,8,Auto">
+
+                    <!-- Ikona stavu -->
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding SelectedAccount.WalletStatusIcon}"
+                               FontSize="14" VerticalAlignment="Center"
+                               Foreground="{DynamicResource BrushTextSecondary}"/>
+
+                    <!-- Adresa + popis -->
+                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SelectedAccount.WalletAddressShort}"
+                                   FontSize="12" FontFamily="Consolas,monospace"
+                                   Foreground="{DynamicResource BrushTextPrimary}"/>
+                        <TextBlock Text="{Binding SelectedAccount.WalletStatusLabel}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+
+                    <!-- Sync zpráva -->
+                    <TextBlock Grid.Column="4"
+                               Text="{Binding WalletSyncMessage}"
+                               FontSize="11" VerticalAlignment="Center"
+                               Foreground="{DynamicResource BrushTextSecondary}"
+                               IsVisible="{Binding WalletSyncMessage,
+                                   Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                    <!-- Tlačítko sync -->
+                    <Button Grid.Column="6"
+                            Classes="ghost"
+                            Command="{Binding SyncWalletCommand}"
+                            IsEnabled="{Binding !IsSyncingWallet}"
+                            Width="30" Height="30" Padding="0" CornerRadius="8"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Znovu synchronizovat peněženku">
+                        <TextBlock Text="🔄" FontSize="13"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </Grid>
+            </Border>
 
             <!-- Import status — úspěch -->
             <Border CornerRadius="6" Padding="12 8"

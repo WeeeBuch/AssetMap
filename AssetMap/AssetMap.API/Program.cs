@@ -36,6 +36,7 @@ public class Program
         builder.Services.AddCommsServices();
         builder.Services.AddCoreServices();
         builder.Services.AddHostedService<SnapshotHostedService>();
+        builder.Services.AddHostedService<WalletSyncHostedService>();
 
         // ── ASP.NET Core ──────────────────────────────────────────
         builder.Services.AddControllers();

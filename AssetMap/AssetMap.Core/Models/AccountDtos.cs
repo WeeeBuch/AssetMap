@@ -20,6 +20,11 @@ public class AccountFullDto
     public double      CurrentValueUsd { get; set; }   // aktuální hodnota v USD
     public double[]    BalanceHistoryUsd { get; set; } = []; // 365 USD hodnot
     public List<TransactionDto> RecentTransactions { get; set; } = [];
+
+    /// <summary>Adresa krypto peněženky (pokud byla zadána).</summary>
+    public string? WalletAddress    { get; set; }
+    /// <summary>"Pending" | "Ok" | "Error" | null</summary>
+    public string? WalletSyncStatus { get; set; }
 }
 
 public class TransactionDto

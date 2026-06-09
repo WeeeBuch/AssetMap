@@ -3,12 +3,14 @@ using AssetMap.Database;
 using AssetMap.Entities;
 using AssetMap.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AssetMap.Core.Services;
 
 public class AccountService(
-    AppDbContext      db,
-    IPortfolioService portfolio)
+    AppDbContext         db,
+    IPortfolioService    portfolio,
+    IServiceScopeFactory scopeFactory)
     : IAccountService
 {
     // ── GET ALL ───────────────────────────────────────────────────
@@ -102,6 +104,27 @@ public class AccountService(
         // Okamžitý snapshot po vytvoření
         await portfolio.TakeSnapshotAsync(account.Id, ct);
 
+        // Spusť blockchain sync asynchronně (fire & forget, vlastní scope)
+        if (!string.IsNullOrWhiteSpace(req.WalletAddress))
+        {
+            var walletId = (await db.WatchedWallets
+                .Where(w => w.AccountId == account.Id)
+                .Select(w => w.Id)
+                .FirstOrDefaultAsync(ct));
+
+            if (walletId != Guid.Empty)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await using var scope = scopeFactory.CreateAsyncScope();
+                        var sync = scope.ServiceProvider.GetRequiredService<IWalletSyncService>();
+                        await sync.SyncWalletAsync(walletId);
+                    }
+                    catch { /* tichá chyba — sync retry při dalším cyklu */ }
+                });
+        }
+
         return (await GetByIdAsync(account.Id, ct))!;
     }
 
@@ -166,6 +189,8 @@ public class AccountService(
             Category      = t.Category,
         }).ToList();
 
+        var wallet = await db.WatchedWallets.FirstOrDefaultAsync(w => w.AccountId == acc.Id, ct);
+
         return new AccountFullDto
         {
             Id                = acc.Id,
@@ -178,6 +203,8 @@ public class AccountService(
             CurrentValueUsd   = valueUsd,
             BalanceHistoryUsd = history,
             RecentTransactions = txDtos,
+            WalletAddress     = wallet?.Address,
+            WalletSyncStatus  = wallet?.SyncStatus.ToString(),
         };
     }
 

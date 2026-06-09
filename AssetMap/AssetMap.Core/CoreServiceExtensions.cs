@@ -11,6 +11,7 @@ public static class CoreServiceExtensions
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<IWalletSyncService, WalletSyncService>();
         return services;
     }
 }

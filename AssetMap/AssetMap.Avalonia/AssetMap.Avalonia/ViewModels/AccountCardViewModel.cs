@@ -78,6 +78,44 @@ public partial class AccountCardViewModel : ViewModelBase
     // Transakce (seznam pod grafem)
     public ObservableCollection<TransactionDisplayItem> Transactions { get; init; } = [];
 
+    /// <summary>Aktuální kurz jedné jednotky v zobrazené měně (jen krypto/brokerage).</summary>
+    public bool   HasUnitPrice  =>
+        AccountTypeValue is AccountType.CryptoWallet or AccountType.Brokerage
+        && ConvertedCurrency is not null
+        && ConvertedCurrency != BaseCurrency
+        && ConversionRate > 0.0001;
+
+    public string UnitPriceText =>
+        HasUnitPrice ? $"1 {BaseCurrency} ≈ {FormatFiat(ConversionRate)} {ConvertedCurrency}" : "";
+
+    // Peněženka (krypto sync)
+    public string? WalletAddress    { get; init; }
+    public string? WalletSyncStatus { get; init; }   // "Pending" | "Ok" | "Error" | null
+
+    public bool   HasWalletAddress  => !string.IsNullOrEmpty(WalletAddress);
+    public string WalletStatusIcon  => WalletSyncStatus switch
+    {
+        "Ok"      => "✓",
+        "Error"   => "✗",
+        _         => "⏳",
+    };
+    public string WalletStatusLabel => WalletSyncStatus switch
+    {
+        "Ok"      => "Synchronizováno",
+        "Error"   => "Chyba synchronizace",
+        _         => "Synchronizace...",
+    };
+    /// <summary>Zkrácená adresa peněženky pro zobrazení (první 8 + "…" + poslední 6 znaků).</summary>
+    public string WalletAddressShort
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(WalletAddress) || WalletAddress.Length <= 16)
+                return WalletAddress ?? "";
+            return WalletAddress[..8] + "…" + WalletAddress[^6..];
+        }
+    }
+
     // ── Real data factory ─────────────────────────────────────
     public static AccountCardViewModel FromData(AccountData data)
     {
@@ -194,6 +232,8 @@ public partial class AccountCardViewModel : ViewModelBase
             DepositIndices    = [.. deposits],
             WithdrawalIndices = [.. withdrawals],
             Transactions      = new ObservableCollection<TransactionDisplayItem>(txItems),
+            WalletAddress     = data.WalletAddress,
+            WalletSyncStatus  = data.WalletSyncStatus,
         };
     }
 

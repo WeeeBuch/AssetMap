@@ -5,12 +5,14 @@ using AssetMap.Entities;
 using AssetMap.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace AssetMap.API.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
-public class AccountsController(IAccountService accounts, IImportService importer, AppDbContext db, IPortfolioService portfolio) : ControllerBase
+public class AccountsController(IAccountService accounts, IImportService importer, AppDbContext db, IPortfolioService portfolio, IServiceScopeFactory scopeFactory) : ControllerBase
 {
     /// <summary>Vrátí ID přihlášeného uživatele z kontextu (nastaven ApiKeyMiddleware).</summary>
     private Guid UserId => HttpContext.Items["UserId"] is Guid id ? id
@@ -196,6 +198,124 @@ public class AccountsController(IAccountService accounts, IImportService importe
         await portfolio.TakeSnapshotAsync(id, ct);
 
         return Ok(txsToSave.Select(t => t.Id).ToArray());
+    }
+
+    /// <summary>Spustí manuální sync krypto peněženky (znovu načte transakce z blockchainu).</summary>
+    [HttpPost("{id:guid}/sync-wallet")]
+    public async Task<IActionResult> SyncWallet(Guid id, CancellationToken ct)
+    {
+        var wallet = await db.WatchedWallets.FirstOrDefaultAsync(w => w.AccountId == id, ct);
+        if (wallet is null) return NotFound("Peněženka nenalezena.");
+
+        // Reset na Pending aby sync proběhl znovu
+        wallet.SyncStatus = SyncStatus.Pending;
+        await db.SaveChangesAsync(ct);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var sync = scope.ServiceProvider.GetRequiredService<IWalletSyncService>();
+                await sync.SyncWalletAsync(wallet.Id);
+            }
+            catch { /* tichá chyba */ }
+        });
+
+        return Accepted(new { message = "Sync zahájen." });
+    }
+
+    /// <summary>
+    /// DEBUG: Testuje stejnou cestu jako skutečný sync.
+    /// - single adresa → blockstream.info/txs (vrátí transakce)
+    /// - xpub/zpub/ypub → NBitcoin derivace prvních 5 adres + blockstream.info check
+    /// Neukládá nic do DB.
+    /// </summary>
+    [HttpGet("{id:guid}/debug-wallet")]
+    public async Task<IActionResult> DebugWallet(Guid id, CancellationToken ct)
+    {
+        var wallet = await db.WatchedWallets.FirstOrDefaultAsync(w => w.AccountId == id, ct);
+        if (wallet is null) return NotFound("Peněženka nenalezena.");
+
+        string addr   = wallet.Address.Trim();
+        bool   isXpub = addr.StartsWith("xpub", StringComparison.OrdinalIgnoreCase) ||
+                        addr.StartsWith("ypub", StringComparison.OrdinalIgnoreCase) ||
+                        addr.StartsWith("zpub", StringComparison.OrdinalIgnoreCase);
+
+        using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        http.DefaultRequestHeaders.Add("User-Agent", "AssetMap/1.0");
+
+        if (!isXpub)
+        {
+            // Single address → stejný endpoint jako sync
+            string url = $"https://blockstream.info/api/address/{Uri.EscapeDataString(addr)}/txs";
+            try
+            {
+                using var resp = await http.GetAsync(url, ct);
+                string body    = await resp.Content.ReadAsStringAsync(ct);
+                return Ok(new { mode = "single-addr", address = addr, url,
+                    httpStatus = (int)resp.StatusCode,
+                    body = body.Length > 3000 ? body[..3000] + "…" : body });
+            }
+            catch (Exception ex) { return Ok(new { mode = "single-addr", address = addr, url, error = ex.Message }); }
+        }
+
+        // xpub/ypub/zpub → ukáže prvních 10 odvozených adres + jejich tx počet
+        try
+        {
+            // Stejná konverze jako ve WalletSyncService.ParseExtendedKey
+            string xpubNorm = addr;
+            string scriptDesc;
+            if (addr.StartsWith("zpub", StringComparison.OrdinalIgnoreCase))
+            {
+                scriptDesc = "Segwit/bc1q";
+                var data = NBitcoin.DataEncoders.Encoders.Base58Check.DecodeData(addr);
+                new byte[] { 0x04, 0x88, 0xB2, 0x1E }.CopyTo(data, 0);
+                xpubNorm = NBitcoin.DataEncoders.Encoders.Base58Check.EncodeData(data);
+            }
+            else if (addr.StartsWith("ypub", StringComparison.OrdinalIgnoreCase))
+            {
+                scriptDesc = "SegwitP2SH/3...";
+                var data = NBitcoin.DataEncoders.Encoders.Base58Check.DecodeData(addr);
+                new byte[] { 0x04, 0x88, 0xB2, 0x1E }.CopyTo(data, 0);
+                xpubNorm = NBitcoin.DataEncoders.Encoders.Base58Check.EncodeData(data);
+            }
+            else { scriptDesc = "Legacy/1..."; }
+
+            var extKey    = NBitcoin.ExtPubKey.Parse(xpubNorm, NBitcoin.Network.Main);
+            var scriptType = addr.StartsWith("zpub", StringComparison.OrdinalIgnoreCase)
+                ? NBitcoin.ScriptPubKeyType.Segwit
+                : addr.StartsWith("ypub", StringComparison.OrdinalIgnoreCase)
+                    ? NBitcoin.ScriptPubKeyType.SegwitP2SH
+                    : NBitcoin.ScriptPubKeyType.Legacy;
+
+            var results = new List<object>();
+            for (int i = 0; i < 5; i++)
+            {
+                string derivedAddr = extKey.Derive(0u).Derive((uint)i)
+                    .PubKey.GetAddress(scriptType, NBitcoin.Network.Main).ToString();
+
+                string bsUrl = $"https://blockstream.info/api/address/{derivedAddr}/txs";
+                try
+                {
+                    using var r = await http.GetAsync(bsUrl, ct);
+                    string bsBody = await r.Content.ReadAsStringAsync(ct);
+                    int txCount = bsBody.StartsWith("[") ? System.Text.Json.JsonDocument.Parse(bsBody).RootElement.GetArrayLength() : -1;
+                    results.Add(new { index = i, address = derivedAddr, txCount,
+                        httpStatus = (int)r.StatusCode });
+                }
+                catch (Exception ex) { results.Add(new { index = i, address = derivedAddr, error = ex.Message }); }
+                await Task.Delay(100, ct);
+            }
+
+            return Ok(new { mode = "xpub", originalKey = addr[..20] + "…", scriptDesc,
+                derivedAddresses = results,
+                note = "Sync derivuje až 2000 adres (gap limit 20). Tady prvních 5 z external chain (m/0/i)." });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { mode = "xpub", error = $"Chyba parsování klíče: {ex.Message}" });
+        }
     }
 
     private static void AdjustHolding(AppDbContext db, Account account, Asset asset, decimal delta)

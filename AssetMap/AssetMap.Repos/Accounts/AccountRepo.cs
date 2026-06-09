@@ -471,6 +471,27 @@ public static class AccountRepo
         catch { return false; }
     }
 
+    // ── POST /api/accounts/{id}/sync-wallet ──────────────
+    /// <summary>Spustí ruční sync krypto peněženky, pak refreshne data.</summary>
+    public static async Task<bool> SyncWalletAsync(Guid accountId)
+    {
+        try
+        {
+            ApplyAuthHeader();
+            var resp = await _http.PostAsync(
+                $"{_serverUrl.TrimEnd('/')}/api/accounts/{accountId}/sync-wallet",
+                new StringContent("", System.Text.Encoding.UTF8, "application/json"));
+            if (resp.IsSuccessStatusCode)
+            {
+                // Počkej na dokončení syncu — blockchain API + DB zápis může trvat 10–30 s
+                await Task.Delay(15_000);
+                await RefreshAsync();
+            }
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     // ── POST /api/accounts/{id}/transactions ─────────────
     /// <summary>
     /// Přidá manuální transakci. Typ Transfer vytvoří dvě transakce (výběr + vklad).
@@ -659,15 +680,17 @@ public static class AccountRepo
 
         return new AccountData
         {
-            Account           = account,
-            IconColorHex      = dto.IconColorHex,
-            BaseCurrency      = dto.BaseCurrency,
-            CurrentBalance    = dto.CurrentBalance,
-            ConvertedCurrency = DisplayCurrency,
-            ConvertedBalance  = convertedBalance,
-            BalanceHistory    = history,
+            Account            = account,
+            IconColorHex       = dto.IconColorHex,
+            BaseCurrency       = dto.BaseCurrency,
+            CurrentBalance     = dto.CurrentBalance,
+            ConvertedCurrency  = DisplayCurrency,
+            ConvertedBalance   = convertedBalance,
+            BalanceHistory     = history,
             RecentTransactions = txs,
-            IsPending         = isPending,
+            IsPending          = isPending,
+            WalletAddress      = dto.WalletAddress,
+            WalletSyncStatus   = dto.WalletSyncStatus,
         };
     }
 
@@ -688,6 +711,8 @@ public static class AccountRepo
         public double      CurrentValueUsd   { get; set; }
         public double[]    BalanceHistoryUsd { get; set; } = [];
         public List<TransactionDto> RecentTransactions { get; set; } = [];
+        public string?     WalletAddress     { get; set; }
+        public string?     WalletSyncStatus  { get; set; }
     }
 
     private class TransactionDto

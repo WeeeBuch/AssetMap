@@ -541,12 +541,16 @@
 
                             <!-- ── Adresa peněženky (jen krypto, volitelné) ─── -->
                             <StackPanel IsVisible="{Binding AddIsTypeCrypto}" Spacing="4" Margin="0 0 0 12">
-                                <TextBlock Text="Adresa peněženky (volitelné)"
+                                <TextBlock Text="Adresa nebo xpub peněženky (volitelné)"
                                            FontSize="12" FontWeight="Medium"
                                            Foreground="{DynamicResource BrushTextSecondary}"/>
                                 <TextBox Text="{Binding AddWalletAddress}"
-                                         PlaceholderText="bc1q… / 0x… / …"
+                                         PlaceholderText="bc1q… / xpub… / zpub… / 0x…"
                                          FontSize="12"/>
+                                <TextBlock FontSize="10" Foreground="{DynamicResource BrushTextSecondary}"
+                                           Opacity="0.6" TextWrapping="Wrap"
+                                           Text="Pro HD peněženky (každá transakce jiná adresa) zadej xpub / zpub z nastavení peněženky."
+                                           IsVisible="{Binding AddWalletAddress, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                 <Grid ColumnDefinitions="Auto,*" Margin="0 4 0 0"
                                       IsVisible="{Binding AddWalletAddress, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                     <TextBlock Grid.Column="0" Text="Síť:"

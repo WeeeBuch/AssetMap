@@ -735,6 +735,22 @@ public partial class AccountsViewModel : ViewModelBase
         account.IsSelected = true;
     }
 
+    // ── Sync peněženky ────────────────────────────────────────
+    [ObservableProperty] private bool   _isSyncingWallet    = false;
+    [ObservableProperty] private string _walletSyncMessage  = "";
+
+    [RelayCommand]
+    private async Task SyncWalletAsync()
+    {
+        if (SelectedAccount is null) return;
+        IsSyncingWallet   = true;
+        WalletSyncMessage = "Synchronizace zahájena…";
+        bool ok = await AccountRepo.SyncWalletAsync(SelectedAccount.AccountId);
+        WalletSyncMessage = ok ? "✓ Synchronizace dokončena" : "✗ Chyba při synchronizaci";
+        IsSyncingWallet   = false;
+        LoadAccounts(AccountRepo.GetAll());
+    }
+
     // ── Zavřít detail ─────────────────────────────────────────
     [RelayCommand]
     private void CloseDetail()
@@ -767,11 +783,12 @@ public partial class AccountsViewModel : ViewModelBase
 
     [ObservableProperty] private string _addInstitution   = "";
     [ObservableProperty] private string _addWalletAddress = "";
-    /// <summary>Index BlockchainNetwork enum: 0=Bitcoin, 1=Ethereum, 2=Solana, ...</summary>
+    /// <summary>Index BlockchainNetwork enum: 0=Bitcoin … 7=Jiný, 8=Cosmos</summary>
     [ObservableProperty] private int    _addWalletNetwork = 0;
 
+    // Pořadí musí odpovídat hodnotám BlockchainNetwork enum (explicitně číslovaným)
     public static readonly string[] BlockchainNetworkNames =
-        ["Bitcoin", "Ethereum", "Solana", "Litecoin", "BNB Smart Chain", "Polygon", "Avalanche", "Jiný"];
+        ["Bitcoin", "Ethereum", "Solana", "Litecoin", "BNB Smart Chain", "Polygon", "Avalanche", "Jiný", "Cosmos"];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AddIsTypeBank))]
