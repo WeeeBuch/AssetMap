@@ -539,6 +539,33 @@
                                 </Grid>
                             </StackPanel><!-- end AddShowAssetSection -->
 
+                            <!-- ── Adresa peněženky (jen krypto, volitelné) ─── -->
+                            <StackPanel IsVisible="{Binding AddIsTypeCrypto}" Spacing="4" Margin="0 0 0 12">
+                                <TextBlock Text="Adresa peněženky (volitelné)"
+                                           FontSize="12" FontWeight="Medium"
+                                           Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBox Text="{Binding AddWalletAddress}"
+                                         PlaceholderText="bc1q… / 0x… / …"
+                                         FontSize="12"/>
+                                <Grid ColumnDefinitions="Auto,*" Margin="0 4 0 0"
+                                      IsVisible="{Binding AddWalletAddress, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Grid.Column="0" Text="Síť:"
+                                               FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               VerticalAlignment="Center" Margin="0 0 8 0"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{x:Static vm:AccountsViewModel.BlockchainNetworkNames}"
+                                              SelectedIndex="{Binding AddWalletNetwork}"
+                                              HorizontalAlignment="Stretch"
+                                              FontSize="12"/>
+                                </Grid>
+                                <TextBlock Text="Po vytvoření účtu bude adresa synchronizována automaticky"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           Opacity="0.7"
+                                           IsVisible="{Binding AddWalletAddress, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </StackPanel>
+
                             <!-- ── Oddělovač ─── -->
                             <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0 8 0 16"/>
 
@@ -675,6 +702,15 @@
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
+                                        <TextBlock Text="Kategorie"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{x:Static vm:AccountsViewModel.PredefinedCategories}"
+                                                  SelectedItem="{Binding NewTxCategory}"
+                                                  PlaceholderText="Vyberte nebo napište…"
+                                                  IsEditable="True"
+                                                  HorizontalAlignment="Stretch"
+                                                  FontSize="13"/>
                                         <TextBlock Text="Popisek"
                                                    FontSize="11" FontWeight="Medium"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
@@ -718,6 +754,15 @@
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
+                                        <TextBlock Text="Kategorie"
+                                                   FontSize="11" FontWeight="Medium"
+                                                   Foreground="{DynamicResource BrushTextSecondary}"/>
+                                        <ComboBox ItemsSource="{x:Static vm:AccountsViewModel.PredefinedCategories}"
+                                                  SelectedItem="{Binding NewTxCategory}"
+                                                  PlaceholderText="Vyberte nebo napište…"
+                                                  IsEditable="True"
+                                                  HorizontalAlignment="Stretch"
+                                                  FontSize="13"/>
                                         <TextBlock Text="Popisek"
                                                    FontSize="11" FontWeight="Medium"
                                                    Foreground="{DynamicResource BrushTextSecondary}"/>
@@ -862,6 +907,15 @@
                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
                                             <DatePicker SelectedDate="{Binding NewTxDate}"
                                                         HorizontalAlignment="Stretch"/>
+                                            <TextBlock Text="Kategorie"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <ComboBox ItemsSource="{x:Static vm:AccountsViewModel.PredefinedCategories}"
+                                                      SelectedItem="{Binding NewTxCategory}"
+                                                      PlaceholderText="Vyberte nebo napište…"
+                                                      IsEditable="True"
+                                                      HorizontalAlignment="Stretch"
+                                                      FontSize="13"/>
                                             <TextBlock Text="Popisek"
                                                        FontSize="11" FontWeight="Medium"
                                                        Foreground="{DynamicResource BrushTextSecondary}"/>
@@ -977,7 +1031,7 @@
                                                Margin="0 0 0 20"/>
 
                                     <!-- Grid s poli -->
-                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                                           >
                                         <!-- Řádek 1: Účet / Typ -->
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0 0 12 14">
@@ -1039,9 +1093,17 @@
                                                        TextWrapping="Wrap"/>
                                         </StackPanel>
 
-                                        <!-- Řádek 4: Poznámka -->
-                                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                                    Spacing="2" Margin="0 0 0 4">
+                                        <!-- Řádek 4: Kategorie / Poznámka -->
+                                        <StackPanel Grid.Row="3" Grid.Column="0" Spacing="2" Margin="0 0 12 4">
+                                            <TextBlock Text="Kategorie"
+                                                       FontSize="11" FontWeight="Medium"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"/>
+                                            <TextBlock Text="{Binding TxDetailCategory}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushText}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="3" Grid.Column="1" Spacing="2" Margin="12 0 0 4">
                                             <TextBlock Text="Poznámka"
                                                        FontSize="11" FontWeight="Medium"
                                                        Foreground="{DynamicResource BrushTextSecondary}"/>

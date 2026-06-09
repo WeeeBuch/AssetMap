@@ -34,6 +34,7 @@ public record TxRowItem(
     public Guid?    FromAccountId { get; init; }
     public Guid?    ToAccountId   { get; init; }
     public bool     IsTransfer    { get; init; }
+    public string?  Category      { get; init; }
 }
 
 // ── ViewModel pro stránku Transakcí ──────────────────────────
@@ -168,6 +169,7 @@ public partial class TransactionsViewModel : ViewModelBase
                         FromAccountId = tx.FromAccountId,
                         ToAccountId   = tx.ToAccountId,
                         IsTransfer    = isTransfer,
+                        Category      = tx.Category,
                     };
 
                     return new RawRow(item, d.Account.Name, isCredit, tx.Date, qty, converted);
@@ -197,6 +199,7 @@ public partial class TransactionsViewModel : ViewModelBase
             ToAccountId   = row.ToAccountId,
             IsTransfer    = row.IsTransfer,
             RawDateTime   = row.RawDate,
+            Category      = row.Category,
         };
         AccountsViewModel.OpenTxDetailRequest?.Invoke(detail);
     }

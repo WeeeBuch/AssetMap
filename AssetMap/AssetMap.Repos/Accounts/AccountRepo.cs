@@ -228,19 +228,23 @@ public static class AccountRepo
         string      assetSymbol,
         double      startBalance,
         double      usdRateOverride = 0,
-        string?     iconColorHex    = null)
+        string?     iconColorHex    = null,
+        string?     walletAddress   = null,
+        int?        walletNetwork   = null)
     {
         double usdRate   = usdRateOverride > 0 ? usdRateOverride : UsdRateForSymbol(assetSymbol);
         var    localId   = Guid.NewGuid();
         var    payload   = new CreateAccountPayload
         {
-            Name         = name,
-            Institution  = institution,
-            AccountType  = (int)type,
-            AssetSymbol  = assetSymbol,
-            StartBalance = startBalance,
-            UsdPrice     = usdRate,
-            IconColorHex = iconColorHex,
+            Name          = name,
+            Institution   = institution,
+            AccountType   = (int)type,
+            AssetSymbol   = assetSymbol,
+            StartBalance  = startBalance,
+            UsdPrice      = usdRate,
+            IconColorHex  = iconColorHex,
+            WalletAddress = walletAddress,
+            WalletNetwork = walletNetwork,
         };
         string payloadJson = JsonSerializer.Serialize(payload, _json);
 
@@ -288,8 +292,10 @@ public static class AccountRepo
     public static void AddAccount(
         string name, string institution, AccountType type,
         string assetSymbol, double startBalance,
-        double usdRateOverride = 0, string? iconColorHex = null)
-        => _ = AddAccountAsync(name, institution, type, assetSymbol, startBalance, usdRateOverride, iconColorHex);
+        double usdRateOverride = 0, string? iconColorHex = null,
+        string? walletAddress = null, int? walletNetwork = null)
+        => _ = AddAccountAsync(name, institution, type, assetSymbol, startBalance,
+               usdRateOverride, iconColorHex, walletAddress, walletNetwork);
 
     // ── PUT /api/accounts/{id} ────────────────────────────
     public static void UpdateAccount(
@@ -478,7 +484,8 @@ public static class AccountRepo
         DateTime date,
         string? note,
         Guid? toAccountId = null,
-        Guid? fromAccountId = null)
+        Guid? fromAccountId = null,
+        string? category = null)
     {
         try
         {
@@ -493,6 +500,7 @@ public static class AccountRepo
                 note,
                 toAccountId,
                 fromAccountId,
+                category,
             };
             var json    = System.Text.Json.JsonSerializer.Serialize(payload, _json);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
@@ -607,6 +615,7 @@ public static class AccountRepo
                 FromAccountId = t.FromAccountId,
                 ToAccountId   = t.ToAccountId,
                 Fee           = t.Fee.HasValue ? (decimal)t.Fee.Value : null,
+                Category      = t.Category,
             };
         }).ToList();
 
@@ -693,18 +702,21 @@ public static class AccountRepo
         public Guid?           FromAccountId { get; set; }
         public Guid?           ToAccountId   { get; set; }
         public double?         Fee           { get; set; }
+        public string?         Category      { get; set; }
     }
 
     /// <summary>Zrcadlí tělo POST /api/accounts pro uložení do fronty.</summary>
     private class CreateAccountPayload
     {
-        public string  Name         { get; set; } = "";
-        public string  Institution  { get; set; } = "";
-        public int     AccountType  { get; set; }
-        public string  AssetSymbol  { get; set; } = "";
-        public double  StartBalance { get; set; }
-        public double  UsdPrice     { get; set; }
-        public string? IconColorHex { get; set; }
+        public string  Name          { get; set; } = "";
+        public string  Institution   { get; set; } = "";
+        public int     AccountType   { get; set; }
+        public string  AssetSymbol   { get; set; } = "";
+        public double  StartBalance  { get; set; }
+        public double  UsdPrice      { get; set; }
+        public string? IconColorHex  { get; set; }
+        public string? WalletAddress { get; set; }
+        public int?    WalletNetwork { get; set; }
     }
 
     // ── Lokální fallback operace (bez serveru) ─────────────

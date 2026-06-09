@@ -29,6 +29,7 @@ public record TransactionDisplayItem(
     public string   AccountName   { get; init; } = "";
     public bool     IsTransfer    { get; init; }
     public DateTime RawDateTime   { get; init; }
+    public string?  Category      { get; init; }
 };
 
 // ── Karta účtu ────────────────────────────────────────────────
@@ -150,6 +151,7 @@ public partial class AccountCardViewModel : ViewModelBase
                     AccountName   = data.Account.Name,
                     IsTransfer    = isTransfer,
                     RawDateTime   = tx.Date,
+                    Category      = tx.Category,
                 };
             })
             .ToList();

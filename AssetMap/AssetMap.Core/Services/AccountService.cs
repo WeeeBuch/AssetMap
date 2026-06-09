@@ -82,6 +82,21 @@ public class AccountService(
             });
         }
 
+        // Peněženka — vytvoř WatchedWallet záznam pokud byla zadána adresa
+        if (!string.IsNullOrWhiteSpace(req.WalletAddress))
+        {
+            db.WatchedWallets.Add(new WatchedWallet
+            {
+                Id         = Guid.NewGuid(),
+                AccountId  = account.Id,
+                Address    = req.WalletAddress.Trim(),
+                Network    = req.WalletNetwork.HasValue
+                             ? (BlockchainNetwork)req.WalletNetwork.Value
+                             : BlockchainNetwork.Bitcoin,
+                SyncStatus = SyncStatus.Pending,
+            });
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Okamžitý snapshot po vytvoření
@@ -148,6 +163,7 @@ public class AccountService(
             FromAccountId = t.FromAccountId,
             ToAccountId   = t.ToAccountId,
             Fee           = t.Fee,
+            Category      = t.Category,
         }).ToList();
 
         return new AccountFullDto

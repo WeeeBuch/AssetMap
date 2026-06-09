@@ -441,7 +441,9 @@
                     <comp:SimpleLineChart Height="220"
                                           BalanceHistory="{Binding DetailHistory}"
                                           DepositIndices="{Binding DetailDepositIndices}"
-                                          WithdrawalIndices="{Binding DetailWithdrawalIndices}"/>
+                                          WithdrawalIndices="{Binding DetailWithdrawalIndices}"
+                                          PriceLine="{Binding DetailPriceHistory}"
+                                          PriceLabel="{Binding DetailPriceLabel}"/>
                 </StackPanel>
             </Border>
 

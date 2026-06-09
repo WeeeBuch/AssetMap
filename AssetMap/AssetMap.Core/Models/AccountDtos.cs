@@ -34,19 +34,24 @@ public class TransactionDto
     public Guid?           FromAccountId { get; set; }
     public Guid?           ToAccountId   { get; set; }
     public decimal?        Fee           { get; set; }
+    public string?         Category      { get; set; }
 }
 
 // ── Requests ─────────────────────────────────────────────────────
 
 public class CreateAccountRequest
 {
-    public string      Name         { get; set; } = "";
-    public string      Institution  { get; set; } = "";
-    public AccountType AccountType  { get; set; }
-    public string      AssetSymbol  { get; set; } = "";
-    public double      StartBalance { get; set; }
-    public double      UsdPrice     { get; set; }   // cena 1 native jednotky v USD
-    public string?     IconColorHex { get; set; }
+    public string      Name          { get; set; } = "";
+    public string      Institution   { get; set; } = "";
+    public AccountType AccountType   { get; set; }
+    public string      AssetSymbol   { get; set; } = "";
+    public double      StartBalance  { get; set; }
+    public double      UsdPrice      { get; set; }   // cena 1 native jednotky v USD
+    public string?     IconColorHex  { get; set; }
+    /// <summary>Adresa krypto peněženky (volitelná). Vytvoří WatchedWallet záznam.</summary>
+    public string?     WalletAddress { get; set; }
+    /// <summary>Blockchain síť (volitelná, jen pokud WalletAddress != null).</summary>
+    public int?        WalletNetwork { get; set; }
 }
 
 public class UpdateAccountRequest
@@ -69,4 +74,5 @@ public class CreateTransactionRequest
     public Guid?           ToAccountId  { get; set; }
     /// <summary>Pro Transfer: ID zdrojového účtu (null = aktuální accountId).</summary>
     public Guid?           FromAccountId { get; set; }
+    public string?         Category      { get; set; }
 }

@@ -144,6 +144,7 @@ public class AccountsController(IAccountService accounts, IImportService importe
                 Fee          = req.Fee > 0 ? (decimal)req.Fee : null,
                 ToAccountId  = toId,
                 Note         = req.Note ?? $"Převod → {dstName}",
+                Category     = req.Category,
             };
             var deposit = new Transaction
             {
@@ -156,6 +157,7 @@ public class AccountsController(IAccountService accounts, IImportService importe
                 PricePerUnit   = 1m,
                 FromAccountId  = id,
                 Note           = req.Note ?? $"Převod ← {srcName}",
+                Category       = req.Category,
             };
             txsToSave.Add(withdrawal);
             txsToSave.Add(deposit);
@@ -180,6 +182,7 @@ public class AccountsController(IAccountService accounts, IImportService importe
                 PricePerUnit = 1m,
                 Fee          = req.Fee > 0 ? (decimal)req.Fee : null,
                 Note         = req.Note,
+                Category     = req.Category,
             };
             txsToSave.Add(tx);
 

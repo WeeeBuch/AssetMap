@@ -123,6 +123,7 @@ public partial class AccountsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(TxDetailDate))]
     [NotifyPropertyChangedFor(nameof(TxDetailAccountName))]
     [NotifyPropertyChangedFor(nameof(TxDetailTypeLabel))]
+    [NotifyPropertyChangedFor(nameof(TxDetailCategory))]
     private TransactionDisplayItem? _selectedTxDetail;
 
     [ObservableProperty] private bool _isTxDetailOpen = false;
@@ -148,6 +149,8 @@ public partial class AccountsViewModel : ViewModelBase
         SelectedTxDetail is { } d
             ? d.IsTransfer ? "Převod" : (d.IsCredit ? "Příjem" : "Výdaj")
             : "–";
+    public string TxDetailCategory =>
+        string.IsNullOrWhiteSpace(SelectedTxDetail?.Category) ? "–" : SelectedTxDetail.Category;
 
     [RelayCommand]
     private void OpenTxDetail(TransactionDisplayItem tx)
@@ -174,6 +177,7 @@ public partial class AccountsViewModel : ViewModelBase
         NewTxAmount           = "";
         NewTxFee              = "";
         NewTxNote             = "";
+        NewTxCategory         = "";
         NewTxTransferTarget   = null;
         NewTxMode             = NewTxMode.In;
         // Defaultní zdrojový účet = aktuálně vybraný (nebo první v listu)
@@ -212,10 +216,20 @@ public partial class AccountsViewModel : ViewModelBase
     [RelayCommand] private void SetNewTxTransfer() => NewTxMode = NewTxMode.Transfer;
 
     // Pole formuláře
-    [ObservableProperty] private string _newTxAmount = "";
-    [ObservableProperty] private string _newTxFee    = "";
-    [ObservableProperty] private string _newTxNote   = "";
+    [ObservableProperty] private string _newTxAmount   = "";
+    [ObservableProperty] private string _newTxFee      = "";
+    [ObservableProperty] private string _newTxNote     = "";
+    [ObservableProperty] private string _newTxCategory = "";
     [ObservableProperty] private DateTimeOffset _newTxDate = DateTimeOffset.Now;
+
+    /// <summary>Předdefinované kategorie pro ComboBox v dialogu transakce.</summary>
+    public static readonly string[] PredefinedCategories =
+    [
+        "Výplata", "Staking", "Odměna", "Dividenda",
+        "Nájem", "Hypotéka", "Pojistné",
+        "Potraviny", "Restaurace", "Doprava",
+        "Zdraví", "Zábava", "Sport", "Investice", "Úspory", "Jiné",
+    ];
 
     // Cílový účet pro Transfer
     [ObservableProperty]
@@ -244,7 +258,8 @@ public partial class AccountsViewModel : ViewModelBase
         {
             var accountId = NewTxSourceAccount.AccountId;
             var date      = NewTxDate.UtcDateTime;
-            var note      = string.IsNullOrWhiteSpace(NewTxNote) ? null : NewTxNote.Trim();
+            var note      = string.IsNullOrWhiteSpace(NewTxNote)     ? null : NewTxNote.Trim();
+            var category  = string.IsNullOrWhiteSpace(NewTxCategory) ? null : NewTxCategory.Trim();
 
             bool ok;
             if (NewTxMode == NewTxMode.Transfer)
@@ -254,7 +269,8 @@ public partial class AccountsViewModel : ViewModelBase
                     accountId,
                     AssetMap.Entities.Enums.TransactionType.Withdrawal,
                     (double)amount, (double)fee, date, note,
-                    toAccountId: NewTxTransferTarget.AccountId);
+                    toAccountId: NewTxTransferTarget.AccountId,
+                    category: category);
             }
             else
             {
@@ -262,7 +278,8 @@ public partial class AccountsViewModel : ViewModelBase
                     ? AssetMap.Entities.Enums.TransactionType.Deposit
                     : AssetMap.Entities.Enums.TransactionType.Withdrawal;
                 ok = await AccountRepo.AddManualTransactionAsync(
-                    accountId, txType, (double)amount, (double)fee, date, note);
+                    accountId, txType, (double)amount, (double)fee, date, note,
+                    category: category);
             }
 
             if (ok)
@@ -271,6 +288,7 @@ public partial class AccountsViewModel : ViewModelBase
                 NewTxAmount           = "";
                 NewTxFee              = "";
                 NewTxNote             = "";
+                NewTxCategory         = "";
                 NewTxDate             = DateTimeOffset.Now;
                 NewTxTransferTarget   = null;
                 await AccountRepo.RefreshAsync();
@@ -417,12 +435,12 @@ public partial class AccountsViewModel : ViewModelBase
     [RelayCommand] private void SetDetailPeriodAll() => DetailChartPeriod = ChartPeriod.All;
 
     partial void OnDetailChartPeriodChanged(ChartPeriod value) => ApplyDetailPeriod();
-    partial void OnSelectedAccountChanged(AccountCardViewModel? value) => ApplyDetailPeriod();
-
     // Filtrovaná data pro detail chart
     private double[] _detailHistory         = [];
     private int[]    _detailDepositIndices   = [];
     private int[]    _detailWithdrawalIndices = [];
+    private double[] _detailPriceHistory     = [];
+    private string   _detailPriceLabel       = "";
 
     public double[] DetailHistory
     {
@@ -439,6 +457,21 @@ public partial class AccountsViewModel : ViewModelBase
         get => _detailWithdrawalIndices;
         private set { _detailWithdrawalIndices = value; OnPropertyChanged(); }
     }
+    /// <summary>Druhá čára v detailu: historická cena aktiva (USD, jen pro krypto).</summary>
+    public double[] DetailPriceHistory
+    {
+        get => _detailPriceHistory;
+        private set { _detailPriceHistory = value; OnPropertyChanged(); }
+    }
+    public string DetailPriceLabel
+    {
+        get => _detailPriceLabel;
+        private set { _detailPriceLabel = value; OnPropertyChanged(); }
+    }
+
+    // Cache: symbol → 365 denních cen (USD) z CoinGecko
+    private readonly Dictionary<string, double[]> _priceCache = new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource? _priceFetchCts;
 
     private void ApplyDetailPeriod()
     {
@@ -448,6 +481,8 @@ public partial class AccountsViewModel : ViewModelBase
             DetailHistory            = [];
             DetailDepositIndices     = [];
             DetailWithdrawalIndices  = [];
+            DetailPriceHistory       = [];
+            DetailPriceLabel         = "";
             return;
         }
 
@@ -473,6 +508,87 @@ public partial class AccountsViewModel : ViewModelBase
 
         DetailDepositIndices     = SliceIndices(acc.DepositIndices,    offset, take);
         DetailWithdrawalIndices  = SliceIndices(acc.WithdrawalIndices, offset, take);
+
+        // Druhá čára — cena aktiva (jen krypto a brokerage)
+        if (acc.AccountTypeValue is AccountType.CryptoWallet or AccountType.Brokerage
+            && _priceCache.TryGetValue(acc.BaseCurrency, out double[]? prices) && prices.Length >= 2)
+        {
+            int pOffset = Math.Max(0, prices.Length - n) + offset;
+            int pTake   = Math.Min(take, prices.Length - pOffset);
+            if (pTake >= 2)
+            {
+                DetailPriceHistory = prices[pOffset..(pOffset + pTake)];
+                DetailPriceLabel   = acc.BaseCurrency + " cena";
+            }
+            else
+            {
+                DetailPriceHistory = [];
+                DetailPriceLabel   = "";
+            }
+        }
+        else
+        {
+            DetailPriceHistory = [];
+            DetailPriceLabel   = "";
+        }
+    }
+
+    partial void OnSelectedAccountChanged(AccountCardViewModel? value)
+    {
+        ApplyDetailPeriod();
+        // Zahájíme fetch cen pro krypto/brokerage pokud není v cache
+        if (value is { AccountTypeValue: AccountType.CryptoWallet or AccountType.Brokerage }
+            && !_priceCache.ContainsKey(value.BaseCurrency))
+        {
+            _priceFetchCts?.Cancel();
+            _priceFetchCts = new CancellationTokenSource();
+            _ = FetchCryptoPriceAsync(value.BaseCurrency, _priceFetchCts.Token);
+        }
+    }
+
+    private async Task FetchCryptoPriceAsync(string symbol, CancellationToken ct)
+    {
+        try
+        {
+            // Krok 1: symbol → CoinGecko coin ID
+            var searchResp = await _cryptoHttp.GetAsync(
+                $"search?query={Uri.EscapeDataString(symbol)}", ct);
+            if (!searchResp.IsSuccessStatusCode) return;
+
+            string? coinId = null;
+            using var searchDoc = JsonDocument.Parse(await searchResp.Content.ReadAsStringAsync(ct));
+            foreach (var coin in searchDoc.RootElement.GetProperty("coins").EnumerateArray())
+            {
+                string? sym = coin.GetProperty("symbol").GetString();
+                if (string.Equals(sym, symbol, StringComparison.OrdinalIgnoreCase))
+                {
+                    coinId = coin.GetProperty("id").GetString();
+                    break;
+                }
+            }
+            if (coinId is null) return;
+
+            // Krok 2: historická data (365 dní)
+            await Task.Delay(300, ct); // Krátká pauza — CoinGecko rate limit
+            var chartResp = await _cryptoHttp.GetAsync(
+                $"coins/{Uri.EscapeDataString(coinId)}/market_chart?vs_currency=usd&days=365&interval=daily", ct);
+            if (!chartResp.IsSuccessStatusCode) return;
+
+            using var chartDoc = JsonDocument.Parse(await chartResp.Content.ReadAsStringAsync(ct));
+            var priceArray = chartDoc.RootElement.GetProperty("prices");
+            var prices = new List<double>();
+            foreach (var entry in priceArray.EnumerateArray())
+                prices.Add(entry[1].GetDouble());
+
+            if (prices.Count < 2) return;
+
+            _priceCache[symbol] = [.. prices];
+
+            // Aktualizuj UI pokud je stále viditelný stejný účet
+            Dispatcher.UIThread.Post(ApplyDetailPeriod);
+        }
+        catch (OperationCanceledException) { }
+        catch { /* tichá chyba — cena prostě nebude zobrazena */ }
     }
 
     private static int[] SliceIndices(int[] src, int offset, int take) =>
@@ -554,7 +670,13 @@ public partial class AccountsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(AddCanConfirm))]
     private string _addName = "";
 
-    [ObservableProperty] private string _addInstitution = "";
+    [ObservableProperty] private string _addInstitution   = "";
+    [ObservableProperty] private string _addWalletAddress = "";
+    /// <summary>Index BlockchainNetwork enum: 0=Bitcoin, 1=Ethereum, 2=Solana, ...</summary>
+    [ObservableProperty] private int    _addWalletNetwork = 0;
+
+    public static readonly string[] BlockchainNetworkNames =
+        ["Bitcoin", "Ethereum", "Solana", "Litecoin", "BNB Smart Chain", "Polygon", "Avalanche", "Jiný"];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AddIsTypeBank))]
@@ -1066,8 +1188,10 @@ public partial class AccountsViewModel : ViewModelBase
             // Pokud je připojen CSV výpis, použij 0 jako základ — import ho nastaví správně
             double startBalance = _pendingCsvBytes is not null ? 0 : balance;
 
+            string? walletAddr = string.IsNullOrWhiteSpace(AddWalletAddress) ? null : AddWalletAddress.Trim();
             AccountRepo.AddAccount(AddName, AddInstitution, ResolvedAddType,
-                _addAssetSymbol, startBalance, _addAssetUsdPrice, AddSelectedColorHex);
+                _addAssetSymbol, startBalance, _addAssetUsdPrice, AddSelectedColorHex,
+                walletAddr, walletAddr != null ? AddWalletNetwork : null);
 
             IsAddDialogOpen = false;
 
@@ -1105,6 +1229,8 @@ public partial class AccountsViewModel : ViewModelBase
         AddAssetStatus     = AssetSearchStatus.None;
         AddManualPriceText = "";
         AddBalanceText     = "";
+        AddWalletAddress   = "";
+        AddWalletNetwork   = 0;
         _addAssetSymbol   = "";
         _addAssetUsdPrice = 1.0;
         _assetSearchCts?.Cancel();

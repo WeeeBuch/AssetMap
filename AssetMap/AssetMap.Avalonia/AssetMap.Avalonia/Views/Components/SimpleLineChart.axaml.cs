@@ -27,6 +27,12 @@ public partial class SimpleLineChart : UserControl
     public static readonly StyledProperty<bool> IsSparklineProperty =
         AvaloniaProperty.Register<SimpleLineChart, bool>(nameof(IsSparkline), false);
 
+    public static readonly StyledProperty<double[]> PriceLineProperty =
+        AvaloniaProperty.Register<SimpleLineChart, double[]>(nameof(PriceLine), []);
+
+    public static readonly StyledProperty<string> PriceLabelProperty =
+        AvaloniaProperty.Register<SimpleLineChart, string>(nameof(PriceLabel), "");
+
     public double[] BalanceHistory
     {
         get => GetValue(BalanceHistoryProperty);
@@ -49,6 +55,20 @@ public partial class SimpleLineChart : UserControl
     {
         get => GetValue(IsSparklineProperty);
         set => SetValue(IsSparklineProperty, value);
+    }
+
+    /// <summary>Druhá datová řada (cena aktiva) — normalizovaná na stejné Y jako BalanceHistory.</summary>
+    public double[] PriceLine
+    {
+        get => GetValue(PriceLineProperty);
+        set => SetValue(PriceLineProperty, value);
+    }
+
+    /// <summary>Popisek druhé čáry pro legendu (např. "BTC cena").</summary>
+    public string PriceLabel
+    {
+        get => GetValue(PriceLabelProperty);
+        set => SetValue(PriceLabelProperty, value);
     }
 
     // ── Layout ────────────────────────────────────────────────
@@ -74,7 +94,9 @@ public partial class SimpleLineChart : UserControl
         base.OnPropertyChanged(change);
         if (change.Property == BalanceHistoryProperty    ||
             change.Property == DepositIndicesProperty    ||
-            change.Property == WithdrawalIndicesProperty)
+            change.Property == WithdrawalIndicesProperty ||
+            change.Property == PriceLineProperty         ||
+            change.Property == PriceLabelProperty)
             InvalidateVisual();
     }
 
@@ -220,6 +242,48 @@ public partial class SimpleLineChart : UserControl
         // ── Tečky transakcí ───────────────────────────────────
         DrawDots(ctx, pts, n, DepositIndices,    Color.Parse("#00E57A"), MapX, MapY);
         DrawDots(ctx, pts, n, WithdrawalIndices, Color.Parse("#FF3355"), MapX, MapY);
+
+        // ── Druhá čára (cena aktiva) ─────────────────────────
+        var pricePts = PriceLine;
+        if (!IsSparkline && pricePts is { Length: > 1 })
+        {
+            // Normalizuj: škáluj cenovou čáru tak, aby začínala na stejné hodnotě jako balance
+            // priceNorm[i] = pts[0] * pricePts[i] / pricePts[0]
+            double priceScale = pricePts[0] > 1e-9 ? pts[0] / pricePts[0] : 1.0;
+            int    pn         = Math.Min(pricePts.Length, n);
+
+            var priceLinePen = new Pen(new SolidColorBrush(Color.Parse("#F7931A")), 1.5,
+                                   lineCap: PenLineCap.Round,
+                                   dashStyle: new DashStyle(new double[] { 5, 3 }, 0));
+
+            var priceGeo = new StreamGeometry();
+            using (var sgc = priceGeo.Open())
+            {
+                // Map price pts to same X scale as balance pts
+                double priceMapX(int i) => PadL + plotW * i / (pn - 1);
+                sgc.BeginFigure(new Point(priceMapX(0), MapY(pricePts[0] * priceScale)), false);
+                for (int i = 1; i < pn; i++)
+                    sgc.LineTo(new Point(priceMapX(i), MapY(pricePts[i] * priceScale)));
+            }
+            ctx.DrawGeometry(null, priceLinePen, priceGeo);
+
+            // Legenda (pravý dolní roh plot area)
+            if (!string.IsNullOrEmpty(PriceLabel))
+            {
+                var legendBrush = new SolidColorBrush(Color.Parse("#F7931A"));
+                var legFt = new FormattedText(
+                    "── " + PriceLabel,
+                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    typeface, 9.5, legendBrush);
+                ctx.DrawText(legFt, new Point(w - PadR - legFt.Width, PadT + 2));
+
+                var balFt = new FormattedText(
+                    "── Zůstatek",
+                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    typeface, 9.5, new SolidColorBrush(Color.Parse("#00B3FF")));
+                ctx.DrawText(balFt, new Point(w - PadR - balFt.Width, PadT + 14));
+            }
+        }
 
         // ── Hover (jen v plném módu) ──────────────────────────
         if (!IsSparkline && _hoverIdx.HasValue && _hoverIdx.Value < n)
